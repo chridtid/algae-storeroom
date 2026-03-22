@@ -622,7 +622,7 @@
     .inventory-toolbar input { min-width: 100%; }
     .photo-upload-zone { padding: 20px; min-height: 140px; }
     .settings-card { padding: 16px; }
-  }
+    
 </style>
 </head>
 <body>
@@ -881,13 +881,22 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+const HARDCODED = {
+  sheetsUrl: 'https://script.google.com/macros/s/AKfycbzMXq2VUKZWm4S-kmFhaQJ-oCauCB0SVqfzHas6qJErmizW70r2itTzzo6S7qKigVBo/exec',
+  tgToken:   '8639477589:AAE7arBguQBuPdQtWKUrhtQH3-dHM1ptFAI',
+  tgChat:    '-1003384672186',
+};
+
 function loadSettings() {
   const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
-  if (s.sheetsId) document.getElementById('sheets-id').value = s.sheetsId;
-  if (s.sheetsName) document.getElementById('sheets-name').value = s.sheetsName;
-  if (s.sheetsJson) document.getElementById('sheets-json').value = s.sheetsJson;
-  if (s.tgToken) document.getElementById('tg-token').value = s.tgToken;
-  if (s.tgChat) document.getElementById('tg-chat').value = s.tgChat;
+  const sheetsUrl = s.sheetsUrl || HARDCODED.sheetsUrl;
+  const tgToken   = s.tgToken   || HARDCODED.tgToken;
+  const tgChat    = s.tgChat    || HARDCODED.tgChat;
+  document.getElementById('sheets-url').value = sheetsUrl;
+  document.getElementById('tg-token').value   = tgToken;
+  document.getElementById('tg-chat').value    = tgChat;
+  // Also persist to localStorage so other functions can read it
+  localStorage.setItem('algae_settings', JSON.stringify({ sheetsUrl, tgToken, tgChat }));
 }
 
 function saveSettings() {
