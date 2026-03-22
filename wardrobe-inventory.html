@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algae Storeroom — Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #8b1a1a;
+    --accent2: #c0392b;
+    --text: #f0ede8;
+    --muted: #666;
+    --danger: #ff4d4d;
+    --success: #4dff91;
+    --radius: 4px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--accent);
+  }
+
+  .logo span { color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; letter-spacing: 1px; display: block; margin-top: -4px; }
+
+  nav { display: flex; gap: 4px; }
+
+  .tab-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .tab-btn.active, .tab-btn:hover {
+    border-color: var(--border);
+    color: var(--text);
+    background: var(--surface);
+  }
+  .tab-btn.active { color: var(--accent); border-color: var(--accent); }
+
+  /* ---- LAYOUT ---- */
+  .page { display: none; padding: 32px; max-width: 960px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ---- SETTINGS PAGE ---- */
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .settings-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .settings-card h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+
+  .settings-card p {
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .field-group { margin-bottom: 12px; }
+  .field-group label {
+    display: block;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field-group input, .field-group select, .field-group textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-group input:focus, .field-group select:focus, .field-group textarea:focus {
+    border-color: var(--accent);
+  }
+  .field-group textarea { resize: vertical; min-height: 60px; }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: #a82020; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-telegram { background: #229ED9; color: #fff; }
+  .btn-telegram:hover { background: #1a8bc4; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* ---- ADD ITEM PAGE ---- */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .photo-upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-upload-zone:hover, .photo-upload-zone.dragging {
+    border-color: var(--accent);
+    background: rgba(200, 241, 53, 0.04);
+  }
+  .photo-upload-zone .icon { font-size: 36px; }
+  .photo-upload-zone p { color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; }
+  .photo-upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .photo-previews {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .photo-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .remove-photo {
+    position: absolute;
+    top: 4px; right: 4px;
+    background: rgba(0,0,0,0.8);
+    border: none;
+    color: #fff;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .photo-thumb.primary::after {
+    content: '1ST';
+    position: absolute;
+    bottom: 4px; left: 4px;
+    background: var(--accent);
+    color: #000;
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+
+  .section-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .measurements-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ---- INVENTORY PAGE ---- */
+  .inventory-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .inventory-toolbar input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    outline: none;
+  }
+  .inventory-toolbar input:focus { border-color: var(--accent); }
+
+  .items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .item-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .item-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .item-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+
+  .item-card-img {
+    aspect-ratio: 3/4;
+    background: var(--surface2);
+    overflow: hidden;
+    position: relative;
+  }
+  .item-card-img img { width: 100%; height: 100%; object-fit: cover; }
+  .item-card-img .no-img {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-size: 32px;
+  }
+  .select-checkbox {
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.7);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .item-card.selected .select-checkbox {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .item-card-body { padding: 12px; }
+  .item-card-body .brand {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .item-card-body .name {
+    font-size: 13px;
+    font-weight: 500;
+    margin: 2px 0 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .item-card-body .measurements-mini {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .bulk-actions {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+    z-index: 200;
+  }
+  .bulk-actions.visible { opacity: 1; pointer-events: all; }
+  .bulk-actions span {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    padding-right: 10px;
+    border-right: 1px solid var(--border);
+  }
+
+  /* ---- TOAST ---- */
+  .toast {
+    position: fixed;
+    top: 80px; right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    z-index: 999;
+    transform: translateX(120%);
+    transition: transform 0.3s;
+    max-width: 300px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.success { border-color: var(--success); color: var(--success); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+  .toast.info { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .caption-preview {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+  .empty-state .big { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-family: 'DM Mono', monospace; font-size: 12px; line-height: 1.6; }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .status-dot.connected { background: var(--success); }
+
+  @media (max-width: 640px) {
+    header {
+      padding: 12px 14px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .logo { font-size: 20px; letter-spacing: 2px; }
+    .logo span { font-size: 10px; }
+    nav { width: 100%; display: flex; }
+    .tab-btn {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 10px;
+      text-align: center;
+    }
+    .page { padding: 14px; }
+    .form-grid { grid-template-columns: 1fr; gap: 16px; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .measurements-grid { grid-template-columns: 1fr 1fr; }
+    .items-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .item-card-body .name { font-size: 12px; }
+    .action-bar { flex-wrap: wrap; }
+    .action-bar .btn { flex: 1; justify-content: center; min-width: 120px; }
+    .bulk-actions {
+      width: calc(100% - 28px);
+      border-radius: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 14px;
+      bottom: 14px;
+    }
+    .bulk-actions span { border-right: none; padding-right: 0; width: 100%; text-align: center; }
+    .modal { padding: 20px; }
+    .inventory-toolbar { flex-wrap: wrap; }
+    .inventory-toolbar input { min-width: 100%; }
+    .photo-upload-zone { padding: 20px; min-height: 140px; }
+    .section-label { font-size: 14px; }
+    .settings-card { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">ALGAE STOREROOM <span>INVENTORY MANAGER</span></div>
+  </div>
+  <nav>
+    <button class="tab-btn active" onclick="switchTab('add')">+ Add Item</button>
+    <button class="tab-btn" onclick="switchTab('inventory')">Inventory</button>
+    <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+  </nav>
+</header>
+
+<!-- ========== ADD ITEM PAGE ========== -->
+<div id="page-add" class="page active">
+  <div class="form-grid">
+    <!-- LEFT: Photos -->
+    <div>
+      <div class="section-label">Photos</div>
+      <div class="photo-upload-zone" id="dropzone">
+        <div class="icon">📸</div>
+        <p>Drop photos here or tap to upload<br>First photo = listing cover</p>
+        <input type="file" id="photo-input" accept="image/*" multiple>
+      </div>
+      <div class="photo-previews" id="photo-previews"></div>
+    </div>
+
+    <!-- RIGHT: Details -->
+    <div>
+      <div class="section-label">Item Details</div>
+      <div class="field-group">
+        <label>Brand</label>
+        <input type="text" id="item-brand" placeholder="e.g. Carhartt, Vintage Levi's">
+      </div>
+      <div class="field-group">
+        <label>Item Name</label>
+        <input type="text" id="item-name" placeholder="e.g. WIP Double Knee Pant">
+      </div>
+      <div class="field-group">
+        <label>Category</label>
+        <select id="item-category">
+          <option value="">Select category</option>
+          <option>Top</option>
+          <option>Bottom</option>
+          <option>Outerwear</option>
+          <option>Dress / Skirt</option>
+          <option>Footwear</option>
+          <option>Accessory</option>
+          <option>Bag</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Tagged Size</label>
+        <input type="text" id="item-size" placeholder="e.g. M, L, 32, One Size">
+      </div>
+
+      <div class="section-label" style="margin-top:20px">Measurements (cm)</div>
+      <div class="measurements-grid">
+        <div class="field-group">
+          <label>Chest / Bust</label>
+          <input type="number" id="m-chest" placeholder="—">
+        </div>
+        <div class="field-group">
+          <label>Waist</label>
+          <input type="number" id="m-waist" placeholder="—">
+        </div>
+        <div class="field-group">
+          <label>Hips</label>
+          <input type="number" id="m-hips" placeholder="—">
+        </div>
+        <div class="field-group">
+          <label>Length</label>
+          <input type="number" id="m-length" placeholder="—">
+        </div>
+        <div class="field-group">
+          <label>Shoulder</label>
+          <input type="number" id="m-shoulder" placeholder="—">
+        </div>
+        <div class="field-group">
+          <label>Sleeve</label>
+          <input type="number" id="m-sleeve" placeholder="—">
+        </div>
+        <div class="field-group">
+          <label>Inseam</label>
+          <input type="number" id="m-inseam" placeholder="—">
+        </div>
+        <div class="field-group">
+          <label>Rise</label>
+          <input type="number" id="m-rise" placeholder="—">
+        </div>
+      </div>
+
+      <div class="field-group" style="margin-top:10px">
+        <label>Notes</label>
+        <textarea id="item-notes" placeholder="Condition, flaws, styling notes…"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn btn-primary" onclick="saveItem()">💾 Save to Inventory</button>
+    <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+  </div>
+</div>
+
+<!-- ========== INVENTORY PAGE ========== -->
+<div id="page-inventory" class="page">
+  <div class="inventory-toolbar">
+    <input type="text" id="search-input" placeholder="Search brand, name, category…" oninput="renderInventory()">
+    <button class="btn btn-secondary" onclick="syncToSheets()">↑ Sync Sheets</button>
+    <button class="btn btn-secondary" onclick="selectAll()">Select All</button>
+  </div>
+
+  <div class="items-grid" id="items-grid">
+    <div class="empty-state">
+      <div class="big">👕</div>
+      <p>No items yet.<br>Go to + Add Item to get started.</p>
+    </div>
+  </div>
+
+  <div class="bulk-actions" id="bulk-actions">
+    <span id="selected-count">0 selected</span>
+    <button class="btn btn-telegram" onclick="openTelegramModal()">✈ Send to Telegram</button>
+    <button class="btn btn-danger" onclick="deleteSelected()">✕ Delete</button>
+    <button class="btn btn-secondary" onclick="clearSelection()">Cancel</button>
+  </div>
+</div>
+
+<!-- ========== SETTINGS PAGE ========== -->
+<div id="page-settings" class="page">
+  <div class="settings-grid">
+    <!-- Google Sheets -->
+    <div class="settings-card">
+      <h3>Google Sheets</h3>
+      <p>Stores your inventory in a Google Sheet.<br>You need a Service Account JSON key from Google Cloud.</p>
+
+      <div class="field-group">
+        <label>Spreadsheet ID</label>
+        <input type="text" id="sheets-id" placeholder="From the URL: /spreadsheets/d/…/edit">
+      </div>
+      <div class="field-group">
+        <label>Sheet Name</label>
+        <input type="text" id="sheets-name" placeholder="e.g. Inventory">
+      </div>
+      <div class="field-group">
+        <label>Google Service Account JSON</label>
+        <textarea id="sheets-json" placeholder='Paste full service account JSON here…' style="min-height:120px; font-size:11px;"></textarea>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:4px;">
+        <button class="btn btn-secondary" onclick="testSheets()">Test Connection</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+        <span id="sheets-status"><span class="status-dot"></span>Not connected</span>
+      </div>
+    </div>
+
+    <!-- Telegram -->
+    <div class="settings-card">
+      <h3>Telegram Bot</h3>
+      <p>Sends grouped photos + caption to your channel or group.<br>Create a bot with @BotFather to get a token.</p>
+
+      <div class="field-group">
+        <label>Bot Token</label>
+        <input type="text" id="tg-token" placeholder="123456:ABCDefgh…">
+      </div>
+      <div class="field-group">
+        <label>Chat ID</label>
+        <input type="text" id="tg-chat" placeholder="-100xxxxxxxxxx or @yourchannel">
+      </div>
+      <div class="field-group">
+        <label>Listing Caption Template</label>
+        <textarea id="tg-template" style="min-height: 120px; font-size: 12px;" placeholder="Use {brand}, {name}, {size}, {chest}, {waist}, {hips}, {length}, {shoulder}, {sleeve}, {inseam}, {rise}, {notes}"></textarea>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:4px;">
+        <button class="btn btn-secondary" onclick="testTelegram()">Send Test</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+        <span id="tg-status"><span class="status-dot"></span>Not connected</span>
+      </div>
+    </div>
+
+    <!-- Setup Guide -->
+    <div class="settings-card" style="grid-column: 1 / -1; background: #1a0a0a; border-color: #400a0a;">
+      <h3 style="color: var(--accent2);">Setup Guide</h3>
+      <p style="color: #aaa; max-width:700px; line-height:1.8;">
+        <strong style="color:var(--accent)">Google Sheets:</strong> Go to console.cloud.google.com → Create Project → Enable "Google Sheets API" → IAM & Admin → Service Accounts → Create → Download JSON key. Share your spreadsheet with the service account email (Editor access).<br><br>
+        <strong style="color:var(--accent)">Telegram:</strong> Message @BotFather on Telegram → /newbot → get your token. Add the bot to your group/channel as admin. Get Chat ID by adding @userinfobot to the group, or use @RawDataBot.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== TELEGRAM MODAL ========== -->
+<div class="modal-overlay" id="tg-modal">
+  <div class="modal">
+    <h2>Send to Telegram</h2>
+    <p style="color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; margin-bottom: 16px;" id="tg-modal-subtitle"></p>
+    <div class="section-label">Caption Preview</div>
+    <div class="caption-preview" id="caption-preview"></div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-telegram" id="send-btn" onclick="sendToTelegram()">✈ Send Now</button>
+      <button class="btn btn-secondary" onclick="closeTelegramModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =================== STATE ===================
+let inventory = JSON.parse(localStorage.getItem('algae_inventory') || '[]');
+let currentPhotos = []; // {dataUrl, file}
+let selectedIds = new Set();
+
+const DEFAULT_TEMPLATE = `🏷 {brand} — {name}
+📏 Size: {size}
+
+Measurements (cm):
+• Chest: {chest}
+• Waist: {waist}
+• Hips: {hips}
+• Length: {length}
+• Shoulder: {shoulder}
+• Sleeve: {sleeve}
+• Inseam: {inseam}
+• Rise: {rise}
+
+📝 {notes}
+
+DM to purchase ✉️`;
+
+// =================== INIT ===================
+window.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  renderInventory();
+  setupDropzone();
+});
+
+function loadSettings() {
+  const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
+  if (s.sheetsId) document.getElementById('sheets-id').value = s.sheetsId;
+  if (s.sheetsName) document.getElementById('sheets-name').value = s.sheetsName;
+  if (s.sheetsJson) document.getElementById('sheets-json').value = s.sheetsJson;
+  if (s.tgToken) document.getElementById('tg-token').value = s.tgToken;
+  if (s.tgChat) document.getElementById('tg-chat').value = s.tgChat;
+  document.getElementById('tg-template').value = s.tgTemplate || DEFAULT_TEMPLATE;
+}
+
+function saveSettings() {
+  const s = {
+    sheetsId: document.getElementById('sheets-id').value.trim(),
+    sheetsName: document.getElementById('sheets-name').value.trim(),
+    sheetsJson: document.getElementById('sheets-json').value.trim(),
+    tgToken: document.getElementById('tg-token').value.trim(),
+    tgChat: document.getElementById('tg-chat').value.trim(),
+    tgTemplate: document.getElementById('tg-template').value,
+  };
+  localStorage.setItem('algae_settings', JSON.stringify(s));
+  toast('Settings saved', 'success');
+}
+
+// =================== TABS ===================
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'inventory') renderInventory();
+}
+
+// =================== PHOTO HANDLING ===================
+function setupDropzone() {
+  const zone = document.getElementById('dropzone');
+  const input = document.getElementById('photo-input');
+
+  input.addEventListener('change', e => handleFiles(e.target.files));
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragging'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragging'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragging');
+    handleFiles(e.dataTransfer.files);
+  });
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      currentPhotos.push({ dataUrl: e.target.result, file });
+      renderPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPreviews() {
+  const container = document.getElementById('photo-previews');
+  container.innerHTML = currentPhotos.map((p, i) => `
+    <div class="photo-thumb ${i === 0 ? 'primary' : ''}">
+      <img src="${p.dataUrl}">
+      <button class="remove-photo" onclick="removePhoto(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+function removePhoto(i) {
+  currentPhotos.splice(i, 1);
+  renderPreviews();
+}
+
+// =================== SAVE ITEM ===================
+function saveItem() {
+  const name = document.getElementById('item-name').value.trim();
+  const brand = document.getElementById('item-brand').value.trim();
+  if (!name && !brand) { toast('Add a brand or item name', 'error'); return; }
+
+  const item = {
+    id: Date.now().toString(),
+    brand,
+    name,
+    category: document.getElementById('item-category').value,
+    size: document.getElementById('item-size').value.trim(),
+    measurements: {
+      chest: document.getElementById('m-chest').value || '',
+      waist: document.getElementById('m-waist').value || '',
+      hips: document.getElementById('m-hips').value || '',
+      length: document.getElementById('m-length').value || '',
+      shoulder: document.getElementById('m-shoulder').value || '',
+      sleeve: document.getElementById('m-sleeve').value || '',
+      inseam: document.getElementById('m-inseam').value || '',
+      rise: document.getElementById('m-rise').value || '',
+    },
+    notes: document.getElementById('item-notes').value.trim(),
+    photos: currentPhotos.map(p => p.dataUrl),
+    addedAt: new Date().toISOString(),
+  };
+
+  inventory.unshift(item);
+  localStorage.setItem('algae_inventory', JSON.stringify(inventory));
+  toast(`Saved: ${brand} ${name}`, 'success');
+  clearForm();
+}
+
+function clearForm() {
+  ['item-brand','item-name','item-size','item-notes',
+   'm-chest','m-waist','m-hips','m-length','m-shoulder','m-sleeve','m-inseam','m-rise']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('item-category').value = '';
+  currentPhotos = [];
+  renderPreviews();
+  document.getElementById('photo-input').value = '';
+}
+
+// =================== INVENTORY RENDER ===================
+function renderInventory() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const filtered = inventory.filter(it =>
+    !q ||
+    (it.brand + it.name + it.category).toLowerCase().includes(q)
+  );
+
+  const grid = document.getElementById('items-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="big">👕</div><p>${q ? 'No results for "' + q + '"' : 'No items yet.<br>Go to + Add Item to get started.'}</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(item => {
+    const m = item.measurements;
+    const mParts = [
+      m.chest ? `C ${m.chest}` : null,
+      m.waist ? `W ${m.waist}` : null,
+      m.length ? `L ${m.length}` : null,
+    ].filter(Boolean).join(' · ');
+
+    return `
+    <div class="item-card ${selectedIds.has(item.id) ? 'selected' : ''}" onclick="toggleSelect('${item.id}')">
+      <div class="item-card-img">
+        ${item.photos[0]
+          ? `<img src="${item.photos[0]}" loading="lazy">`
+          : `<div class="no-img">👕</div>`}
+        <div class="select-checkbox">${selectedIds.has(item.id) ? '✓' : ''}</div>
+      </div>
+      <div class="item-card-body">
+        <div class="brand">${item.brand || '—'}</div>
+        <div class="name">${item.name || 'Untitled'}</div>
+        <div class="measurements-mini">
+          ${item.size ? `Sz ${item.size}` : ''}${item.size && mParts ? ' · ' : ''}${mParts}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateBulkBar();
+}
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  renderInventory();
+}
+
+function selectAll() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  inventory
+    .filter(it => !q || (it.brand + it.name + it.category).toLowerCase().includes(q))
+    .forEach(it => selectedIds.add(it.id));
+  renderInventory();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  renderInventory();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-actions');
+  document.getElementById('selected-count').textContent = `${selectedIds.size} selected`;
+  bar.classList.toggle('visible', selectedIds.size > 0);
+}
+
+function deleteSelected() {
+  if (!confirm(`Delete ${selectedIds.size} item(s)?`)) return;
+  inventory = inventory.filter(it => !selectedIds.has(it.id));
+  localStorage.setItem('algae_inventory', JSON.stringify(inventory));
+  selectedIds.clear();
+  renderInventory();
+  toast('Deleted', 'info');
+}
+
+// =================== BUILD CAPTION ===================
+function buildCaption(item) {
+  const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
+  const template = s.tgTemplate || DEFAULT_TEMPLATE;
+  const m = item.measurements;
+  return template
+    .replace(/{brand}/g, item.brand || '')
+    .replace(/{name}/g, item.name || '')
+    .replace(/{size}/g, item.size || '—')
+    .replace(/{category}/g, item.category || '—')
+    .replace(/{chest}/g, m.chest || '—')
+    .replace(/{waist}/g, m.waist || '—')
+    .replace(/{hips}/g, m.hips || '—')
+    .replace(/{length}/g, m.length || '—')
+    .replace(/{shoulder}/g, m.shoulder || '—')
+    .replace(/{sleeve}/g, m.sleeve || '—')
+    .replace(/{inseam}/g, m.inseam || '—')
+    .replace(/{rise}/g, m.rise || '—')
+    .replace(/{notes}/g, item.notes || '');
+}
+
+// =================== TELEGRAM =================== 
+function openTelegramModal() {
+  const items = inventory.filter(it => selectedIds.has(it.id));
+  if (items.length === 0) return;
+
+  // For single item: show its caption; for multiple: one per item but preview first
+  const preview = buildCaption(items[0]);
+  document.getElementById('caption-preview').textContent = preview;
+  document.getElementById('tg-modal-subtitle').textContent =
+    items.length === 1
+      ? `1 item · ${items[0].photos.length} photo(s)`
+      : `${items.length} items will be sent as separate listings`;
+
+  document.getElementById('tg-modal').classList.add('open');
+}
+
+function closeTelegramModal() {
+  document.getElementById('tg-modal').classList.remove('open');
+}
+
+async function sendToTelegram() {
+  const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
+  if (!s.tgToken || !s.tgChat) {
+    toast('Add your Telegram token & chat ID in Settings', 'error');
+    return;
+  }
+
+  const items = inventory.filter(it => selectedIds.has(it.id));
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const item of items) {
+    try {
+      await sendItemToTelegram(item, s.tgToken, s.tgChat);
+      successCount++;
+    } catch (err) {
+      console.error(err);
+      failCount++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✈ Send Now';
+  closeTelegramModal();
+
+  if (failCount === 0) toast(`Sent ${successCount} listing(s) to Telegram!`, 'success');
+  else toast(`${successCount} sent, ${failCount} failed. Check token/chat ID.`, 'error');
+}
+
+async function sendItemToTelegram(item, token, chatId) {
+  const caption = buildCaption(item);
+  const baseUrl = `https://api.telegram.org/bot${token}`;
+
+  if (item.photos.length === 0) {
+    // No photos — send text only
+    await fetch(`${baseUrl}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: caption, parse_mode: 'HTML' })
+    });
+    return;
+  }
+
+  if (item.photos.length === 1) {
+    // Single photo with caption
+    const blob = dataUrlToBlob(item.photos[0]);
+    const fd = new FormData();
+    fd.append('chat_id', chatId);
+    fd.append('photo', blob, 'photo.jpg');
+    fd.append('caption', caption);
+    const res = await fetch(`${baseUrl}/sendPhoto`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.description);
+    return;
+  }
+
+  // Multiple photos — send as media group, caption on first
+  const mediaGroup = item.photos.map((_, i) => ({
+    type: 'photo',
+    media: `attach://photo${i}`,
+    ...(i === 0 ? { caption, parse_mode: 'HTML' } : {})
+  }));
+
+  const fd = new FormData();
+  fd.append('chat_id', chatId);
+  fd.append('media', JSON.stringify(mediaGroup));
+  item.photos.forEach((dataUrl, i) => {
+    fd.append(`photo${i}`, dataUrlToBlob(dataUrl), `photo${i}.jpg`);
+  });
+
+  const res = await fetch(`${baseUrl}/sendMediaGroup`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.description);
+}
+
+function dataUrlToBlob(dataUrl) {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new Blob([u8arr], { type: mime });
+}
+
+// =================== TELEGRAM TEST ===================
+async function testTelegram() {
+  const token = document.getElementById('tg-token').value.trim();
+  const chat = document.getElementById('tg-chat').value.trim();
+  if (!token || !chat) { toast('Fill in token and chat ID first', 'error'); return; }
+
+  toast('Sending test message…', 'info');
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text: '✅ Algae Storeroom connected successfully!' })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('tg-status').innerHTML = '<span class="status-dot connected"></span>Connected';
+      toast('Test message sent!', 'success');
+      saveSettings();
+    } else {
+      toast('Error: ' + data.description, 'error');
+    }
+  } catch (e) {
+    toast('Network error. Check token.', 'error');
+  }
+}
+
+// =================== GOOGLE SHEETS SYNC ===================
+async function syncToSheets() {
+  const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
+  if (!s.sheetsId || !s.sheetsJson) {
+    toast('Configure Google Sheets in Settings first', 'error');
+    return;
+  }
+
+  toast('Syncing to Google Sheets…', 'info');
+
+  try {
+    const creds = JSON.parse(s.sheetsJson);
+    const token = await getGoogleAccessToken(creds);
+    const sheetName = s.sheetsName || 'Inventory';
+
+    // Build rows
+    const headers = ['ID','Brand','Name','Category','Size','Chest','Waist','Hips','Length','Shoulder','Sleeve','Inseam','Rise','Notes','Photos','Added At'];
+    const rows = inventory.map(it => [
+      it.id, it.brand, it.name, it.category, it.size,
+      it.measurements.chest, it.measurements.waist, it.measurements.hips,
+      it.measurements.length, it.measurements.shoulder, it.measurements.sleeve,
+      it.measurements.inseam, it.measurements.rise,
+      it.notes, it.photos.length + ' photo(s)', it.addedAt
+    ]);
+
+    const values = [headers, ...rows];
+    const range = `${sheetName}!A1`;
+
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${s.sheetsId}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values })
+      }
+    );
+
+    const data = await res.json();
+    if (data.updatedCells) {
+      toast(`Synced ${rows.length} items to Sheets ✓`, 'success');
+    } else {
+      toast('Sheets error: ' + (data.error?.message || 'Unknown'), 'error');
+    }
+  } catch (e) {
+    toast('Sync failed: ' + e.message, 'error');
+  }
+}
+
+async function testSheets() {
+  const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
+  if (!s.sheetsId || !s.sheetsJson) { toast('Fill in Sheet ID and Service Account JSON', 'error'); return; }
+  toast('Testing connection…', 'info');
+  try {
+    const creds = JSON.parse(s.sheetsJson);
+    const token = await getGoogleAccessToken(creds);
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${s.sheetsId}?fields=title`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.title) {
+      document.getElementById('sheets-status').innerHTML = `<span class="status-dot connected"></span>Connected: ${data.title}`;
+      toast('Connected to: ' + data.title, 'success');
+      saveSettings();
+    } else {
+      toast('Error: ' + (data.error?.message || 'Could not connect'), 'error');
+    }
+  } catch (e) {
+    toast('Failed: ' + e.message, 'error');
+  }
+}
+
+// ---- Minimal JWT / OAuth2 for Service Account (browser-side) ----
+async function getGoogleAccessToken(creds) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: creds.client_email,
+    scope: 'https://www.googleapis.com/auth/spreadsheets',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const b64Header = btoa(JSON.stringify(header)).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const b64Payload = btoa(JSON.stringify(payload)).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  const unsigned = `${b64Header}.${b64Payload}`;
+
+  const pemKey = creds.private_key;
+  const keyData = pemKey.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+  const keyBuf = Uint8Array.from(atob(keyData), c => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8', keyBuf.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['sign']
+  );
+
+  const enc = new TextEncoder();
+  const sigBuf = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, enc.encode(unsigned));
+  const sig = btoa(String.fromCharCode(...new Uint8Array(sigBuf))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+
+  const jwt = `${unsigned}.${sig}`;
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+  });
+  const tokenData = await tokenRes.json();
+  if (!tokenData.access_token) throw new Error(tokenData.error_description || 'Token fetch failed');
+  return tokenData.access_token;
+}
+
+// =================== TOAST ===================
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
