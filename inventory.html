@@ -670,6 +670,86 @@
     .breakdown-table td:nth-child(n+4) { display: none; }
   }
 
+  .finance-item-list { padding: 4px 8px 8px; }
+  .finance-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    cursor: grab;
+    transition: background 0.15s;
+    border-top: 2px solid transparent;
+  }
+  .finance-item-row:hover { background: var(--surface2); }
+  .finance-item-row:active { cursor: grabbing; }
+  .drag-handle {
+    color: var(--muted);
+    font-size: 16px;
+    cursor: grab;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .finance-item-info { flex: 1; min-width: 0; }
+  .finance-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+  .finance-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+  }
+
+  /* ---- FILTER BAR ---- */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .filter-group select, .filter-group input[type="date"] {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text);
+    padding: 6px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .filter-group select:focus, .filter-group input[type="date"]:focus {
+    border-color: var(--accent2);
+  }
+  .filter-group select.active-filter, .filter-group input[type="date"].active-filter {
+    border-color: var(--accent);
+    background: rgba(90,122,106,0.06);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* hide edit btn on mobile, tap row instead */
+  @media (hover: none) and (pointer: coarse) {
+    .finance-edit-btn { display: none; }
+  }
+  @media (hover: hover) {
+    .finance-item-row { cursor: default; }
+    .drag-handle { display: none; }
+  }
+
   /* ---- END FINANCE ---- */
   .settings-section-title {
     font-family: 'Playfair Display', serif;
@@ -849,9 +929,55 @@
 <div id="page-inventory" class="page">
   <div class="inventory-toolbar">
     <input type="text" id="search-input" placeholder="Search description…" oninput="renderInventory()">
-    <button class="btn btn-secondary" onclick="syncToSheets()">↑ Sync Sheets</button>
+    <button class="btn btn-secondary" onclick="syncToSheets()">↑ Sync</button>
     <button class="btn btn-secondary" onclick="selectAll()">Select All</button>
   </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar" id="filter-bar">
+    <div class="filter-group">
+      <select id="filter-source" onchange="renderInventory()">
+        <option value="">All Sources</option>
+        <option>Carousell</option>
+        <option>Xianyu</option>
+        <option>Thrift</option>
+        <option>Wholesale</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <select id="filter-person" onchange="renderInventory()">
+        <option value="">All People</option>
+        <option>Chris</option>
+        <option>Jay</option>
+        <option>Sophie</option>
+        <option>Phoebs</option>
+        <option>Xing-Yi</option>
+        <option>Lorry</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <input type="date" id="filter-date" onchange="renderInventory()" placeholder="Drop date">
+    </div>
+    <div class="filter-group">
+      <select id="filter-type" onchange="renderInventory()">
+        <option value="">All Types</option>
+        <option value="Top">Top / Shirt</option>
+        <option value="Bottom - Pants">Pants</option>
+        <option value="Bottom - Shorts">Shorts</option>
+        <option value="Bottom - Skirt">Skirt</option>
+        <option value="Set">Set</option>
+        <option value="Outerwear">Outerwear</option>
+        <option value="Dress">Dress</option>
+        <option value="Footwear">Footwear</option>
+        <option value="Accessory">Accessory</option>
+        <option value="Bag">Bag</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:11px" onclick="clearFilters()">Clear</button>
+  </div>
+
   <div class="sub-tabs">
     <button class="sub-tab active" id="subtab-main" onclick="switchSubTab('main')">Main <span class="count" id="count-main">0</span></button>
     <button class="sub-tab" id="subtab-clearance" onclick="switchSubTab('clearance')">Clearance <span class="count" id="count-clearance">0</span></button>
@@ -1410,7 +1536,6 @@ async function saveItem() {
     measurements: getMeasurements(),
     notes: document.getElementById('item-notes').value.trim(),
     photos: capturedPhotos.map(p => p.dataUrl),
-    addedAt: new Date().toISOString(),
   };
 
   // Save locally and render
@@ -1489,9 +1614,19 @@ function clearForm() {
 
 // =================== INVENTORY RENDER ===================
 function renderInventory() {
-  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const q       = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const fSource = document.getElementById('filter-source')?.value || '';
+  const fPerson = document.getElementById('filter-person')?.value || '';
+  const fDate   = document.getElementById('filter-date')?.value || '';
+  const fType   = document.getElementById('filter-type')?.value || '';
 
-  // Update counts on sub-tabs
+  // Highlight active filters
+  ['filter-source','filter-person','filter-date','filter-type'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active-filter', !!el.value);
+  });
+
+  // Update sub-tab counts (unfiltered)
   ['main','clearance'].forEach(type => {
     const n = inventory.filter(it => (it.listingType || 'main') === type).length;
     const el = document.getElementById('count-' + type);
@@ -1499,9 +1634,13 @@ function renderInventory() {
   });
 
   const filtered = inventory.filter(it => {
-    const matchType = (it.listingType || 'main') === currentSubTab;
-    const matchQ = !q || (it.name + (it.category||'')).toLowerCase().includes(q);
-    return matchType && matchQ;
+    if ((it.listingType || 'main') !== currentSubTab) return false;
+    if (q && !(it.name||'').toLowerCase().includes(q)) return false;
+    if (fSource && it.source !== fSource) return false;
+    if (fPerson && !(it.persons||[]).includes(fPerson)) return false;
+    if (fDate && it.date !== fDate) return false;
+    if (fType && (it.category||'') !== fType) return false;
+    return true;
   });
 
   const grid = document.getElementById('items-grid');
@@ -1556,6 +1695,16 @@ function selectAll() {
 }
 
 function clearSelection() { selectedIds.clear(); renderInventory(); }
+
+function clearFilters() {
+  ['filter-source','filter-person','filter-type'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('active-filter'); }
+  });
+  const fd = document.getElementById('filter-date');
+  if (fd) { fd.value = ''; fd.classList.remove('active-filter'); }
+  renderInventory();
+}
 
 function updateBulkBar() {
   const bar = document.getElementById('bulk-actions');
@@ -2073,10 +2222,10 @@ function renderPersonTable(el) {
     const share = 1 / persons.length;
     persons.forEach(p => {
       if (!pm[p]) pm[p] = { revenue:0, cost:0, items:0, sold:0 };
-      pm[p].items += share;
+      pm[p].items += 1; // whole item per person
       if (it.status === 'sold') {
-        pm[p].sold    += share;
-        pm[p].revenue += (parseFloat(it.salePrice)||0) * share;
+        pm[p].sold    += 1; // whole sold count per person
+        pm[p].revenue += (parseFloat(it.salePrice)||0) * share; // split profit
         pm[p].cost    += (parseFloat(it.cost)||0) * share;
       }
     });
@@ -2085,7 +2234,7 @@ function renderPersonTable(el) {
   el.innerHTML = `
   <div class="breakdown-wrap">
     <table class="breakdown-table">
-      <thead><tr><th>Person</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Items</th></tr></thead>
+      <thead><tr><th>Person</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Items</th><th>Sold</th></tr></thead>
       <tbody>${Object.entries(pm).map(([person, d]) => {
         const profit = d.revenue - d.cost;
         return `<tr>
@@ -2093,7 +2242,8 @@ function renderPersonTable(el) {
           <td>$${d.revenue.toFixed(2)}</td>
           <td>$${d.cost.toFixed(2)}</td>
           <td style="color:${profit>=0?'var(--success)':'var(--danger)'}"><strong>$${profit.toFixed(2)}</strong></td>
-          <td>${Math.round(d.items*10)/10}</td>
+          <td>${d.items}</td>
+          <td>${d.sold}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>
@@ -2101,31 +2251,220 @@ function renderPersonTable(el) {
 }
 
 function renderItemsTable(el) {
-  if (!inventory.length) { el.innerHTML = '<div class="empty-state"><div class="big">🪸</div><p>No items yet.</p></div>'; return; }
-  el.innerHTML = `
-  <div class="breakdown-wrap">
-    <table class="breakdown-table">
-      <thead><tr><th></th><th>Item</th><th>Status</th><th>Cost</th><th>Sale</th><th>Profit</th><th></th></tr></thead>
-      <tbody>${inventory.map(it => {
-        const cost   = parseFloat(it.cost)||0;
-        const sale   = parseFloat(it.salePrice)||0;
-        const profit = sale - cost;
-        const status = it.status || 'available';
-        const thumb  = it.photos && it.photos[0]
-          ? `<img src="${it.photos[0]}" class="item-thumb-tiny">`
-          : `<div class="item-thumb-tiny" style="display:inline-flex;align-items:center;justify-content:center;font-size:16px">🪸</div>`;
-        return `<tr>
-          <td>${thumb}</td>
-          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${it.name||''}">${it.name||'—'}</td>
-          <td><span class="status-pill ${status}">${status}</span></td>
-          <td>${cost?'$'+cost.toFixed(2):'—'}</td>
-          <td>${sale?'$'+sale.toFixed(2):'—'}</td>
-          <td style="color:${profit>0?'var(--success)':profit<0?'var(--danger)':'var(--muted)'}">${(cost||sale)?'$'+profit.toFixed(2):'—'}</td>
-          <td><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick="openSaleModal('${it.id}')">Edit</button></td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>
-  </div>`;
+  if (!inventory.length) {
+    el.innerHTML = '<div class="empty-state"><div class="big">🪸</div><p>No items yet.</p></div>';
+    return;
+  }
+
+  // Group by drop date, sorted chronologically (Undated last)
+  const groups = {};
+  inventory.forEach(it => {
+    const key = it.date || 'Undated';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(it);
+  });
+
+  const sortedKeys = Object.keys(groups).sort((a, b) => {
+    if (a === 'Undated') return 1;
+    if (b === 'Undated') return -1;
+    return a.localeCompare(b);
+  });
+
+  el.innerHTML = sortedKeys.map(dateKey => `
+    <div class="breakdown-wrap" style="margin-bottom:14px">
+      <div style="padding:12px 16px 4px;display:flex;justify-content:space-between;align-items:center">
+        <h4 style="font-family:'Playfair Display',serif;font-size:14px;font-style:italic;color:var(--accent)">${dateKey}</h4>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted)">${groups[dateKey].length} item(s)</span>
+      </div>
+      <div class="finance-item-list" data-date="${dateKey}">
+        ${groups[dateKey].map(it => {
+          const cost   = parseFloat(it.cost)||0;
+          const sale   = parseFloat(it.salePrice)||0;
+          const profit = sale - cost;
+          const status = it.status || 'available';
+          const thumb  = it.photos && it.photos[0]
+            ? `<img src="${it.photos[0]}" class="item-thumb-tiny">`
+            : `<div class="item-thumb-tiny" style="display:inline-flex;align-items:center;justify-content:center;font-size:16px">🪸</div>`;
+          return `
+          <div class="finance-item-row" data-id="${it.id}" data-date="${it.date||''}">
+            <span class="drag-handle">⠿</span>
+            ${thumb}
+            <div class="finance-item-info">
+              <div class="finance-item-name">${it.name||'—'}</div>
+              <div class="finance-item-meta">
+                <span class="status-pill ${status}">${status}</span>
+                ${cost ? `<span>$${cost.toFixed(2)}</span>` : ''}
+                ${sale ? `<span style="color:var(--accent-warm)">→ $${sale.toFixed(2)}</span>` : ''}
+                ${(cost||sale) ? `<span style="color:${profit>=0?'var(--success)':'var(--danger)'}">$${profit.toFixed(2)}</span>` : ''}
+              </div>
+            </div>
+            <button class="btn btn-secondary finance-edit-btn" style="padding:6px 12px;font-size:12px;flex-shrink:0" onclick="openSaleModal('${it.id}')">Edit</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+
+  // Attach drag-and-drop
+  setupFinanceDragDrop();
+}
+
+function setupFinanceDragDrop() {
+  let dragging = null;       // the DOM element being dragged
+  let dragId = null;         // inventory id
+  let placeholder = null;    // visual placeholder
+  let startY = 0;
+  let offsetY = 0;
+
+  function getRowFromPoint(x, y) {
+    // Temporarily hide dragging element so elementFromPoint doesn't hit it
+    if (dragging) dragging.style.display = 'none';
+    const el = document.elementFromPoint(x, y);
+    if (dragging) dragging.style.display = '';
+    if (!el) return null;
+    return el.closest('.finance-item-row');
+  }
+
+  function getListFromPoint(x, y) {
+    if (dragging) dragging.style.display = 'none';
+    const el = document.elementFromPoint(x, y);
+    if (dragging) dragging.style.display = '';
+    if (!el) return null;
+    return el.closest('.finance-item-list');
+  }
+
+  function onDragStart(e, row) {
+    dragId = row.dataset.id;
+    dragging = row;
+    startY = (e.touches ? e.touches[0].clientY : e.clientY);
+    offsetY = startY - row.getBoundingClientRect().top;
+
+    // Create placeholder
+    placeholder = document.createElement('div');
+    placeholder.style.cssText = `height:${row.offsetHeight}px;background:var(--surface2);border-radius:var(--radius-sm);border:2px dashed var(--border);margin:2px 0;`;
+    row.parentNode.insertBefore(placeholder, row.nextSibling);
+
+    // Style the dragging element
+    row.style.cssText += `position:fixed;z-index:999;width:${row.offsetWidth}px;opacity:0.95;box-shadow:0 8px 24px rgba(0,0,0,0.15);pointer-events:none;`;
+    positionDragging(e);
+  }
+
+  function positionDragging(e) {
+    if (!dragging) return;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY);
+    dragging.style.top = (y - offsetY) + 'px';
+    dragging.style.left = dragging.getBoundingClientRect().left + 'px';
+  }
+
+  function onDragMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    positionDragging(e);
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    // Move placeholder to hover position
+    const targetRow = getRowFromPoint(clientX, clientY);
+    if (targetRow && targetRow !== dragging) {
+      const rect = targetRow.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (clientY < midY) {
+        targetRow.parentNode.insertBefore(placeholder, targetRow);
+      } else {
+        targetRow.parentNode.insertBefore(placeholder, targetRow.nextSibling);
+      }
+    } else {
+      // Try dropping into a list area
+      const targetList = getListFromPoint(clientX, clientY);
+      if (targetList && !targetList.contains(placeholder)) {
+        targetList.appendChild(placeholder);
+      }
+    }
+  }
+
+  function onDragEnd(e) {
+    if (!dragging) return;
+
+    // Figure out where placeholder ended up
+    const placeholderList = placeholder.parentNode;
+    const newDate = placeholderList ? (placeholderList.dataset.date === 'Undated' ? '' : placeholderList.dataset.date) : null;
+
+    // Get new order from DOM
+    const allRows = Array.from(document.querySelectorAll('.finance-item-row'));
+    const newOrder = allRows.map(r => r.dataset.id).filter(Boolean);
+
+    // Reset dragging styles
+    dragging.style.cssText = '';
+    placeholder.remove();
+    dragging = null;
+    placeholder = null;
+
+    if (!newOrder.length) return;
+
+    // Update inventory order to match DOM
+    const reordered = [];
+    newOrder.forEach(id => {
+      const item = inventory.find(i => i.id === id);
+      if (item) reordered.push(item);
+    });
+    // Keep any items not in the DOM (shouldn't happen but safety net)
+    inventory.forEach(it => { if (!reordered.find(r => r.id === it.id)) reordered.push(it); });
+    inventory.length = 0;
+    reordered.forEach(it => inventory.push(it));
+
+    // Update date if moved to different group
+    if (newDate !== null) {
+      const movedItem = inventory.find(i => i.id === dragId);
+      if (movedItem) movedItem.date = newDate;
+    }
+
+    dragId = null;
+    persistAndSync();
+    renderItemsTable(document.getElementById('finance-breakdown'));
+  }
+
+  document.querySelectorAll('.finance-item-row').forEach(row => {
+    let longPressTimer = null;
+    let touchMoved = false;
+
+    // Touch: short tap = edit, long press = drag
+    row.addEventListener('touchstart', e => {
+      touchMoved = false;
+      longPressTimer = setTimeout(() => {
+        if (!touchMoved) onDragStart(e, row);
+      }, 400); // 400ms long press
+    }, { passive: true });
+
+    row.addEventListener('touchmove', e => {
+      touchMoved = true;
+      if (dragging) {
+        e.preventDefault();
+        onDragMove(e);
+      } else {
+        clearTimeout(longPressTimer);
+      }
+    }, { passive: false });
+
+    row.addEventListener('touchend', e => {
+      clearTimeout(longPressTimer);
+      if (dragging) {
+        onDragEnd(e);
+      } else if (!touchMoved) {
+        // Short tap — open sale modal
+        openSaleModal(row.dataset.id);
+      }
+    }, { passive: false });
+
+    // Mouse: normal drag from handle, row click does nothing
+    row.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (e.target.closest('.finance-edit-btn')) return;
+      onDragStart(e, row);
+    });
+  });
+
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup',   onDragEnd);
 }
 
 function openSaleModal(id) {
