@@ -568,7 +568,109 @@
   .listing-badge.main { background: rgba(90,122,106,0.15); color: var(--accent); }
   .listing-badge.clearance { background: rgba(176,122,90,0.15); color: var(--accent-warm); }
 
-  /* ---- SETTINGS SECTION TITLES ---- */
+  /* ---- FINANCE ---- */
+  .finance-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .finance-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(90,122,106,0.05);
+  }
+  .finance-card .fc-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .finance-card .fc-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .finance-card .fc-value.positive { color: var(--success); }
+  .finance-card .fc-value.negative { color: var(--danger); }
+  .finance-card .fc-sub {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .breakdown-table th {
+    text-align: left;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .breakdown-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--surface2);
+    vertical-align: middle;
+  }
+  .breakdown-table tr:last-child td { border-bottom: none; }
+  .breakdown-table tr:hover td { background: var(--surface2); }
+  .breakdown-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(90,122,106,0.05);
+    margin-bottom: 16px;
+  }
+  .breakdown-wrap h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-style: italic;
+    color: var(--accent);
+    padding: 14px 16px 0;
+  }
+
+  .status-pill {
+    display: inline-block;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .status-pill.available  { background: rgba(90,122,106,0.12); color: var(--accent); }
+  .status-pill.sold       { background: rgba(176,122,90,0.15); color: var(--accent-warm); }
+  .status-pill.reserved   { background: rgba(90,100,180,0.12); color: #6070c0; }
+
+  .item-thumb-tiny {
+    width: 36px; height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--surface2);
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .finance-summary { grid-template-columns: 1fr 1fr; }
+    .breakdown-table th:nth-child(n+4),
+    .breakdown-table td:nth-child(n+4) { display: none; }
+  }
+
+  /* ---- END FINANCE ---- */
   .settings-section-title {
     font-family: 'Playfair Display', serif;
     font-size: 20px;
@@ -640,6 +742,7 @@
   <nav>
     <button class="tab-btn active" onclick="switchTab('add')">+ Add Item</button>
     <button class="tab-btn" onclick="switchTab('inventory')">Inventory</button>
+    <button class="tab-btn" onclick="switchTab('finance')">Finance</button>
     <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
   </nav>
 </header>
@@ -661,10 +764,6 @@
     <!-- RIGHT: Details -->
     <div class="form-panel">
       <div class="section-label">Item Details</div>
-      <div class="field-group">
-        <label>Brand</label>
-        <input type="text" id="item-brand" oninput="this.value=this.value.toUpperCase()">
-      </div>
       <div class="field-group">
         <label>Item Description</label>
         <textarea id="item-name" style="min-height:72px"></textarea>
@@ -749,7 +848,7 @@
 <!-- ========== INVENTORY PAGE ========== -->
 <div id="page-inventory" class="page">
   <div class="inventory-toolbar">
-    <input type="text" id="search-input" placeholder="Search brand, description…" oninput="renderInventory()">
+    <input type="text" id="search-input" placeholder="Search description…" oninput="renderInventory()">
     <button class="btn btn-secondary" onclick="syncToSheets()">↑ Sync Sheets</button>
     <button class="btn btn-secondary" onclick="selectAll()">Select All</button>
   </div>
@@ -772,7 +871,7 @@
   <!-- TEMPLATES -->
   <div class="settings-section-title">Templates</div>
   <div class="settings-card" style="margin-bottom: 24px;">
-    <p style="color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;margin-bottom:14px;line-height:1.6;">Edit the caption template for each category. Blanks are skipped automatically. Available tags: <code>{brand}</code> <code>{desc}</code> <code>{gender}</code> <code>{size}</code> <code>{notes}</code> <code>{sb}</code> and measurement tags like <code>{ptp}</code> <code>{length}</code> <code>{waist}</code> <code>{rise}</code> <code>{inseam}</code> <code>{thigh}</code> <code>{shoulder}</code> <code>{sleeve}</code> <code>{hips}</code></p>
+    <p style="color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;margin-bottom:14px;line-height:1.6;">Edit the caption template for each category. Blanks are skipped automatically. Available tags: <code>{desc}</code> <code>{gender}</code> <code>{size}</code> <code>{notes}</code> <code>{sb}</code> and measurement tags like <code>{ptp}</code> <code>{length}</code> <code>{waist}</code> <code>{rise}</code> <code>{inseam}</code> <code>{thigh}</code> <code>{shoulder}</code> <code>{sleeve}</code> <code>{hips}</code></p>
     <div class="template-tabs">
       <button class="tmpl-tab active" onclick="switchTemplateTab('top', this)">Top</button>
       <button class="tmpl-tab" onclick="switchTemplateTab('bottom_pants', this)">Pants</button>
@@ -843,7 +942,151 @@
   </div>
 </div>
 
-<!-- ========== TELEGRAM MODAL ========== -->
+<!-- ========== FINANCE PAGE ========== -->
+<div id="page-finance" class="page">
+
+  <!-- Summary cards -->
+  <div class="finance-summary" id="finance-summary"></div>
+
+  <!-- Breakdown tabs -->
+  <div class="sub-tabs" style="margin-bottom:16px">
+    <button class="sub-tab active" id="ftab-drop"   onclick="switchFinanceTab('drop',this)">By Drop</button>
+    <button class="sub-tab"        id="ftab-source" onclick="switchFinanceTab('source',this)">By Source</button>
+    <button class="sub-tab"        id="ftab-person" onclick="switchFinanceTab('person',this)">By Person</button>
+    <button class="sub-tab"        id="ftab-items"  onclick="switchFinanceTab('items',this)">All Items</button>
+  </div>
+
+  <div id="finance-breakdown"></div>
+</div>
+
+<!-- ========== SALE MODAL ========== -->
+<div class="modal-overlay" id="sale-modal">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h2>Mark as Sold</h2>
+      <button class="btn btn-secondary" style="padding:6px 12px" onclick="closeSaleModal()">✕</button>
+    </div>
+    <p style="font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:16px" id="sale-modal-item-name"></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field-group">
+        <label>Cost Price ($)</label>
+        <input type="number" id="sale-cost" placeholder="0.00" step="0.01">
+      </div>
+      <div class="field-group">
+        <label>Selling Price ($)</label>
+        <input type="number" id="sale-price" placeholder="0.00" step="0.01">
+      </div>
+      <div class="field-group">
+        <label>Date Sold</label>
+        <input type="date" id="sale-date">
+      </div>
+      <div class="field-group">
+        <label>Buyer</label>
+        <input type="text" id="sale-buyer" placeholder="@handle or name">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" onclick="saveSale()">Mark Sold</button>
+      <button class="btn btn-secondary" onclick="markAvailable()">Mark Available</button>
+      <button class="btn btn-secondary" onclick="markReserved()">Reserved</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== EDIT MODAL ========== -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal" style="max-width:600px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h2 id="edit-modal-title">Edit Item</h2>
+      <button class="btn btn-secondary" style="padding:6px 12px" onclick="closeEditModal()">✕</button>
+    </div>
+
+    <!-- Photos -->
+    <div class="section-label" style="margin-bottom:10px">Photos</div>
+    <div class="photo-previews" id="edit-photo-previews" style="margin-bottom:10px"></div>
+    <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--accent);font-family:'DM Sans',sans-serif;margin-bottom:16px">
+      <input type="file" id="edit-photo-input" accept="image/*" multiple style="display:none" onchange="handleEditPhotos(this.files)">
+      + Add photos
+    </label>
+
+    <!-- Fields -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field-group" style="grid-column:1/-1">
+        <label>Item Description</label>
+        <textarea id="edit-name" style="min-height:64px"></textarea>
+      </div>
+      <div class="field-group">
+        <label>Category</label>
+        <select id="edit-category" onchange="updateEditMeasurements()">
+          <option value="">—</option>
+          <option value="Top">Top / Shirt</option>
+          <option value="Bottom - Pants">Bottom — Pants</option>
+          <option value="Bottom - Shorts">Bottom — Shorts</option>
+          <option value="Bottom - Skirt">Bottom — Skirt</option>
+          <option value="Set">Set (Top + Bottom)</option>
+          <option value="Outerwear">Outerwear</option>
+          <option value="Dress">Dress</option>
+          <option value="Footwear">Footwear</option>
+          <option value="Accessory">Accessory</option>
+          <option value="Bag">Bag</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Listing Type</label>
+        <select id="edit-listing-type">
+          <option value="main">Main</option>
+          <option value="clearance">Clearance</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Gender Tag</label>
+        <select id="edit-gender">
+          <option value="">—</option>
+          <option value="women's">women's</option>
+          <option value="men's">men's</option>
+          <option value="unisex">unisex</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Tagged Size</label>
+        <input type="text" id="edit-size">
+      </div>
+      <div class="field-group">
+        <label>Source</label>
+        <select id="edit-source">
+          <option value="">—</option>
+          <option value="Carousell">Carousell</option>
+          <option value="Xianyu">Xianyu</option>
+          <option value="Thrift">Thrift</option>
+          <option value="Wholesale">Wholesale</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Drop Date</label>
+        <input type="date" id="edit-date">
+      </div>
+    </div>
+
+    <div class="field-group" style="margin-top:4px">
+      <label>Person</label>
+      <div id="edit-person-select" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+    </div>
+
+    <div id="edit-measurements-section"></div>
+
+    <div class="field-group" style="margin-top:10px">
+      <label>Notes / Defects</label>
+      <textarea id="edit-notes" placeholder="e.g. condition, flaws, authenticity concerns"></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <button class="btn btn-primary" onclick="saveEdit()">💾 Save Changes</button>
+      <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="tg-modal">
   <div class="modal">
     <h2>Send to Telegram</h2>
@@ -869,9 +1112,9 @@ let currentSubTab = 'main';
 // =================== HARDCODED SETTINGS ===================
 // Fill these in once — everyone who opens the app will be connected automatically
 const HARDCODED = {
-  sheetsUrl: 'https://script.google.com/macros/s/AKfycbzMXq2VUKZWm4S-kmFhaQJ-oCauCB0SVqfzHas6qJErmizW70r2itTzzo6S7qKigVBo/exec',  // paste your Apps Script URL here
-  tgToken:   '8639477589:AAE7arBguQBuPdQtWKUrhtQH3-dHM1ptFAI',  // paste your Telegram bot token here
-  tgChat:    '-1003384672186',  // paste your Telegram chat ID here
+  sheetsUrl: '',  // paste your Apps Script URL here
+  tgToken:   '',  // paste your Telegram bot token here
+  tgChat:    '',  // paste your Telegram chat ID here
 };
 
 // =================== INIT ===================
@@ -918,7 +1161,7 @@ function saveSettings() {
 
 // =================== TEMPLATES ===================
 const DEFAULT_TEMPLATES = {
-  top: `{brand}! {desc}
+  top: `{desc}
 
 tagged {gender} {size}
 ptp: {ptp}
@@ -928,7 +1171,7 @@ length: {length}
 
 sb {sb}
 min increment $2`,
-  bottom_pants: `{brand}! {desc}
+  bottom_pants: `{desc}
 
 tagged {gender} {size}
 length: {length}
@@ -939,7 +1182,7 @@ rise: {rise}
 
 sb {sb}
 min increment $2`,
-  bottom_shorts: `{brand}! {desc}
+  bottom_shorts: `{desc}
 
 tagged {gender} {size}
 length: {length}
@@ -950,7 +1193,7 @@ rise: {rise}
 
 sb {sb}
 min increment $2`,
-  bottom_skirt: `{brand}! {desc}
+  bottom_skirt: `{desc}
 
 tagged {gender} {size}
 length: {length}
@@ -960,7 +1203,7 @@ waist: {waist}
 
 sb {sb}
 min increment $2`,
-  set: `{brand}! {desc}
+  set: `{desc}
 
 tagged {gender} {size}
 
@@ -976,7 +1219,7 @@ waist: {waist}
 
 sb {sb}
 min increment $2`,
-  outerwear: `{brand}! {desc}
+  outerwear: `{desc}
 
 tagged {gender} {size}
 ptp: {ptp}
@@ -986,7 +1229,7 @@ length: {length}
 
 sb {sb}
 min increment $2`,
-  dress: `{brand}! {desc}
+  dress: `{desc}
 
 tagged {gender} {size}
 ptp: {ptp}
@@ -1041,6 +1284,7 @@ function switchTab(tab) {
   document.getElementById('page-' + tab).classList.add('active');
   event.target.classList.add('active');
   if (tab === 'inventory') renderInventory();
+  if (tab === 'finance') renderFinance();
 }
 
 function switchSubTab(tab) {
@@ -1147,13 +1391,11 @@ function getMeasurements() {
 
 // =================== SAVE ITEM ===================
 async function saveItem() {
-  const brand = document.getElementById('item-brand').value.trim().toUpperCase();
   const name = document.getElementById('item-name').value.trim();
-  if (!brand && !name) { toast('Add a brand or description', 'error'); return; }
+  if (!name) { toast('Add an item description', 'error'); return; }
 
   const item = {
     id: Date.now().toString(),
-    brand,
     name,
     category: document.getElementById('item-category').value,
     gender: document.getElementById('item-gender').value,
@@ -1171,6 +1413,7 @@ async function saveItem() {
   // Save locally first so it appears immediately
   inventory.unshift(item);
   localStorage.setItem('algae_inventory', JSON.stringify(inventory));
+  clearForm(); // clear straight away — don't wait for upload
   renderInventory();
 
   // Upload photos to Drive if script URL configured
@@ -1178,8 +1421,7 @@ async function saveItem() {
   if (url && currentPhotos.length > 0) {
     toast(`Saving & uploading ${currentPhotos.length} photo(s)…`, 'info');
     try {
-      const driveUrls = await uploadPhotosToDrive(item, currentPhotos, url);
-      // Replace local dataUrls with Drive URLs
+      const driveUrls = await uploadPhotosToDrive(item, currentPhotos, url);      // Replace local dataUrls with Drive URLs
       item.photos = driveUrls;
       // Update in inventory array
       const idx = inventory.findIndex(i => i.id === item.id);
@@ -1191,18 +1433,16 @@ async function saveItem() {
       toast('Item saved, but photo upload failed: ' + e.message, 'error');
     }
   } else {
-    toast(`Saved: ${brand || name}`, 'success');
+    toast(`Saved: ${name}`, 'success');
   }
 
   // Sync updated inventory to Sheet
   if (url) syncToSheets();
-
-  clearForm();
 }
 
 async function uploadPhotosToDrive(item, photos, scriptUrl) {
   const folderName = item.date || 'Undated';
-  const itemName = [item.brand, item.name].filter(Boolean).join(' ') || item.id;
+  const itemName = item.name || item.id;
   const urls = [];
 
   for (let i = 0; i < photos.length; i++) {
@@ -1234,11 +1474,12 @@ async function uploadPhotosToDrive(item, photos, scriptUrl) {
 }
 
 function clearForm() {
-  ['item-brand','item-name','item-size','item-source','item-notes','item-date']
-    .forEach(id => document.getElementById(id).value = '');
+  ['item-name','item-size','item-notes','item-date']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('item-category').value = '';
   document.getElementById('item-gender').value = '';
   document.getElementById('item-listing-type').value = 'main';
+  document.getElementById('item-source').value = '';
   document.querySelectorAll('.person-chip').forEach(c => c.classList.remove('active'));
   document.getElementById('measurements-section').innerHTML = '';
   currentPhotos = [];
@@ -1259,7 +1500,7 @@ function renderInventory() {
 
   const filtered = inventory.filter(it => {
     const matchType = (it.listingType || 'main') === currentSubTab;
-    const matchQ = !q || (it.brand + it.name + (it.category||'')).toLowerCase().includes(q);
+    const matchQ = !q || (it.name + (it.category||'')).toLowerCase().includes(q);
     return matchType && matchQ;
   });
 
@@ -1281,14 +1522,13 @@ function renderInventory() {
     const persons = (item.persons||[]).join(', ');
 
     return `
-    <div class="item-card ${selectedIds.has(item.id) ? 'selected' : ''}" onclick="toggleSelect('${item.id}')">
+    <div class="item-card ${selectedIds.has(item.id) ? 'selected' : ''}" onclick="openEditModal('${item.id}')">
       <div class="item-card-img">
         ${item.photos[0] ? `<img src="${item.photos[0]}" loading="lazy">` : `<div class="no-img">🪸</div>`}
-        <div class="select-checkbox">${selectedIds.has(item.id) ? '✓' : ''}</div>
+        <div class="select-checkbox" onclick="event.stopPropagation();toggleSelect('${item.id}')">${selectedIds.has(item.id) ? '✓' : ''}</div>
       </div>
       <div class="item-card-body">
         <div class="listing-badge ${type}">${type === 'main' ? 'main · sb $6' : 'clearance · sb $2'}</div>
-        <div class="brand">${item.brand || '—'}</div>
         <div class="name">${item.name || 'Untitled'}</div>
         <div class="measurements-mini">
           ${item.size ? `sz ${item.size}` : ''}${item.size && mParts ? ' · ' : ''}${mParts}
@@ -1310,7 +1550,7 @@ function toggleSelect(id) {
 function selectAll() {
   const q = (document.getElementById('search-input')?.value || '').toLowerCase();
   inventory
-    .filter(it => (it.listingType || 'main') === currentSubTab && (!q || (it.brand + it.name).toLowerCase().includes(q)))
+    .filter(it => (it.listingType || 'main') === currentSubTab && (!q || it.name.toLowerCase().includes(q)))
     .forEach(it => selectedIds.add(it.id));
   renderInventory();
 }
@@ -1348,7 +1588,7 @@ function buildCaption(item) {
 
   // Token values — empty string means "nothing"
   const tokens = {
-    brand: item.brand || '',
+    
     desc: item.name || '',
     gender: item.gender || '',
     size: item.size || '',
@@ -1588,7 +1828,361 @@ async function testSheets() {
   }
 }
 
-// =================== PWA ===================
+// =================== EDIT MODAL ===================
+let editingId = null;
+let editPhotos = []; // {dataUrl, isNew, file?}
+
+function openEditModal(id) {
+  const item = inventory.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+
+  // Populate person chips first
+  const container = document.getElementById('edit-person-select');
+  container.innerHTML = '';
+  ['Chris','Jay','Sophie','Phoebs','Xing-Yi','Lorry'].forEach(name => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'person-chip' + ((item.persons||[]).includes(name) ? ' active' : '');
+    btn.dataset.person = name;
+    btn.textContent = name;
+    btn.onclick = () => btn.classList.toggle('active');
+    container.appendChild(btn);
+  });
+
+  // Populate fields
+  
+  document.getElementById('edit-name').value         = item.name || '';
+  document.getElementById('edit-category').value     = item.category || '';
+  document.getElementById('edit-listing-type').value = item.listingType || 'main';
+  document.getElementById('edit-gender').value       = item.gender || '';
+  document.getElementById('edit-size').value         = item.size || '';
+  document.getElementById('edit-source').value       = item.source || '';
+  document.getElementById('edit-date').value         = item.date || '';
+  document.getElementById('edit-notes').value        = item.notes || '';
+
+  // Measurements
+  updateEditMeasurements();
+  // Fill in measurement values after fields are rendered
+  setTimeout(() => {
+    const m = item.measurements || {};
+    ALL_MEASUREMENT_IDS.forEach(id => {
+      const el = document.getElementById('edit-' + id);
+      if (el) el.value = m[id.replace(/-/g, '_')] || '';
+    });
+  }, 0);
+
+  // Photos — existing ones
+  editPhotos = (item.photos || []).map(url => ({ dataUrl: url, isNew: false }));
+  renderEditPreviews();
+
+  document.getElementById('edit-modal-title').textContent = item.name || 'Edit Item';
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingId = null;
+  editPhotos = [];
+}
+
+function handleEditPhotos(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      editPhotos.push({ dataUrl: e.target.result, isNew: true, file });
+      renderEditPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderEditPreviews() {
+  const container = document.getElementById('edit-photo-previews');
+  container.innerHTML = editPhotos.map((p, i) => `
+    <div class="photo-thumb ${i === 0 ? 'primary' : ''}">
+      <img src="${p.dataUrl}">
+      <button class="remove-photo" onclick="removeEditPhoto(${i})">×</button>
+    </div>`).join('');
+}
+
+function removeEditPhoto(i) {
+  editPhotos.splice(i, 1);
+  renderEditPreviews();
+}
+
+function updateEditMeasurements() {
+  const cat = document.getElementById('edit-category').value;
+  const section = document.getElementById('edit-measurements-section');
+  const config = MEASUREMENT_CONFIG[cat];
+  if (!config) { section.innerHTML = ''; return; }
+  section.innerHTML = config.sections.map(s => `
+    <div class="section-label" style="margin-top:16px">${s.label}</div>
+    <div class="measurements-grid">
+      ${s.fields.map(f => `<div class="field-group"><label>${f.label}</label><input type="number" id="edit-${f.id}" placeholder="—"></div>`).join('')}
+    </div>`).join('');
+}
+
+async function saveEdit() {
+  const item = inventory.find(i => i.id === editingId);
+  if (!item) return;
+
+  // Collect measurements
+  const measurements = {};
+  ALL_MEASUREMENT_IDS.forEach(id => {
+    const el = document.getElementById('edit-' + id);
+    if (el) measurements[id.replace(/-/g, '_')] = el.value || '';
+  });
+
+  // Collect persons
+  const persons = Array.from(document.querySelectorAll('#edit-person-select .person-chip.active'))
+    .map(b => b.dataset.person);
+
+  // Update item fields
+  
+  item.name        = document.getElementById('edit-name').value.trim();
+  item.category    = document.getElementById('edit-category').value;
+  item.listingType = document.getElementById('edit-listing-type').value;
+  item.gender      = document.getElementById('edit-gender').value;
+  item.size        = document.getElementById('edit-size').value.trim();
+  item.source      = document.getElementById('edit-source').value;
+  item.date        = document.getElementById('edit-date').value || '';
+  item.notes       = document.getElementById('edit-notes').value.trim();
+  item.measurements = measurements;
+  item.persons     = persons;
+
+  // Handle photos — upload new ones, keep existing URLs
+  const url = getScriptUrl();
+  const newPhotos = editPhotos.filter(p => p.isNew);
+  const existingUrls = editPhotos.filter(p => !p.isNew).map(p => p.dataUrl);
+
+  if (url && newPhotos.length > 0) {
+    toast(`Uploading ${newPhotos.length} new photo(s)…`, 'info');
+    try {
+      const itemName = item.name || item.id;
+      const newUrls = await uploadPhotosToDrive(item, newPhotos, url);
+      item.photos = [...existingUrls, ...newUrls];
+    } catch(e) {
+      toast('Photo upload failed: ' + e.message, 'error');
+      item.photos = [...existingUrls, ...newPhotos.map(p => p.dataUrl)];
+    }
+  } else {
+    item.photos = existingUrls;
+  }
+
+  localStorage.setItem('algae_inventory', JSON.stringify(inventory));
+  renderInventory();
+  if (url) syncToSheets();
+  toast('Changes saved ✓', 'success');
+  closeEditModal();
+}
+
+// =================== FINANCE ===================
+let currentFinanceTab = 'drop';
+let saleEditingId = null;
+
+function switchFinanceTab(tab, btn) {
+  currentFinanceTab = tab;
+  document.querySelectorAll('#page-finance .sub-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFinanceBreakdown();
+}
+
+function renderFinance() {
+  renderFinanceSummary();
+  renderFinanceBreakdown();
+}
+
+function renderFinanceSummary() {
+  const items = inventory;
+  const sold         = items.filter(it => it.status === 'sold');
+  const totalCost    = items.reduce((s,it) => s + (parseFloat(it.cost)||0), 0);
+  const totalRevenue = sold.reduce((s,it) => s + (parseFloat(it.salePrice)||0), 0);
+  const soldCost     = sold.reduce((s,it) => s + (parseFloat(it.cost)||0), 0);
+  const totalProfit  = totalRevenue - soldCost;
+  const unsoldCount  = items.filter(it => it.status !== 'sold').length;
+
+  document.getElementById('finance-summary').innerHTML = `
+    <div class="finance-card">
+      <div class="fc-label">Total Revenue</div>
+      <div class="fc-value">$${totalRevenue.toFixed(2)}</div>
+      <div class="fc-sub">${sold.length} item(s) sold</div>
+    </div>
+    <div class="finance-card">
+      <div class="fc-label">Total Cost</div>
+      <div class="fc-value">$${totalCost.toFixed(2)}</div>
+      <div class="fc-sub">${items.length} item(s) logged</div>
+    </div>
+    <div class="finance-card">
+      <div class="fc-label">Net Profit</div>
+      <div class="fc-value ${totalProfit >= 0 ? 'positive' : 'negative'}">$${totalProfit.toFixed(2)}</div>
+      <div class="fc-sub">on sold items</div>
+    </div>
+    <div class="finance-card">
+      <div class="fc-label">Unsold Stock</div>
+      <div class="fc-value">${unsoldCount}</div>
+      <div class="fc-sub">$${items.filter(it=>it.status!=='sold').reduce((s,it)=>s+(parseFloat(it.cost)||0),0).toFixed(2)} tied up</div>
+    </div>`;
+}
+
+function renderFinanceBreakdown() {
+  const el = document.getElementById('finance-breakdown');
+  if (currentFinanceTab === 'items')  { renderItemsTable(el); return; }
+  if (currentFinanceTab === 'drop')   { renderGroupedTable(el, it => it.date || 'Undated'); return; }
+  if (currentFinanceTab === 'source') { renderGroupedTable(el, it => it.source || 'Unknown'); return; }
+  if (currentFinanceTab === 'person') { renderPersonTable(el); return; }
+}
+
+function renderGroupedTable(el, groupFn) {
+  const groups = {};
+  inventory.forEach(it => {
+    const g = groupFn(it);
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(it);
+  });
+  const sorted = Object.entries(groups).sort((a,b) => b[0].localeCompare(a[0]));
+  if (!sorted.length) { el.innerHTML = '<div class="empty-state"><div class="big">🪸</div><p>No items yet.</p></div>'; return; }
+
+  el.innerHTML = sorted.map(([group, items]) => {
+    const sold    = items.filter(it => it.status === 'sold');
+    const revenue = sold.reduce((s,it) => s+(parseFloat(it.salePrice)||0), 0);
+    const cost    = sold.reduce((s,it) => s+(parseFloat(it.cost)||0), 0);
+    const profit  = revenue - cost;
+    const unsold  = items.filter(it => it.status !== 'sold').length;
+    return `
+    <div class="breakdown-wrap">
+      <h4>${group}</h4>
+      <table class="breakdown-table">
+        <thead><tr><th>Items</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Unsold</th></tr></thead>
+        <tbody><tr>
+          <td>${items.length}</td>
+          <td>$${revenue.toFixed(2)}</td>
+          <td>$${cost.toFixed(2)}</td>
+          <td style="color:${profit>=0?'var(--success)':'var(--danger)'}"><strong>$${profit.toFixed(2)}</strong></td>
+          <td>${unsold}</td>
+        </tr></tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function renderPersonTable(el) {
+  const pm = {};
+  inventory.forEach(it => {
+    const persons = it.persons && it.persons.length ? it.persons : ['Unassigned'];
+    const share = 1 / persons.length;
+    persons.forEach(p => {
+      if (!pm[p]) pm[p] = { revenue:0, cost:0, items:0, sold:0 };
+      pm[p].items += share;
+      if (it.status === 'sold') {
+        pm[p].sold    += share;
+        pm[p].revenue += (parseFloat(it.salePrice)||0) * share;
+        pm[p].cost    += (parseFloat(it.cost)||0) * share;
+      }
+    });
+  });
+  if (!Object.keys(pm).length) { el.innerHTML = '<div class="empty-state"><div class="big">🪸</div><p>No items yet.</p></div>'; return; }
+  el.innerHTML = `
+  <div class="breakdown-wrap">
+    <table class="breakdown-table">
+      <thead><tr><th>Person</th><th>Revenue</th><th>Cost</th><th>Profit</th><th>Items</th></tr></thead>
+      <tbody>${Object.entries(pm).map(([person, d]) => {
+        const profit = d.revenue - d.cost;
+        return `<tr>
+          <td><strong>${person}</strong></td>
+          <td>$${d.revenue.toFixed(2)}</td>
+          <td>$${d.cost.toFixed(2)}</td>
+          <td style="color:${profit>=0?'var(--success)':'var(--danger)'}"><strong>$${profit.toFixed(2)}</strong></td>
+          <td>${Math.round(d.items*10)/10}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderItemsTable(el) {
+  if (!inventory.length) { el.innerHTML = '<div class="empty-state"><div class="big">🪸</div><p>No items yet.</p></div>'; return; }
+  el.innerHTML = `
+  <div class="breakdown-wrap">
+    <table class="breakdown-table">
+      <thead><tr><th></th><th>Item</th><th>Status</th><th>Cost</th><th>Sale</th><th>Profit</th><th></th></tr></thead>
+      <tbody>${inventory.map(it => {
+        const cost   = parseFloat(it.cost)||0;
+        const sale   = parseFloat(it.salePrice)||0;
+        const profit = sale - cost;
+        const status = it.status || 'available';
+        const thumb  = it.photos && it.photos[0]
+          ? `<img src="${it.photos[0]}" class="item-thumb-tiny">`
+          : `<div class="item-thumb-tiny" style="display:inline-flex;align-items:center;justify-content:center;font-size:16px">🪸</div>`;
+        return `<tr>
+          <td>${thumb}</td>
+          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${it.name||''}">${it.name||'—'}</td>
+          <td><span class="status-pill ${status}">${status}</span></td>
+          <td>${cost?'$'+cost.toFixed(2):'—'}</td>
+          <td>${sale?'$'+sale.toFixed(2):'—'}</td>
+          <td style="color:${profit>0?'var(--success)':profit<0?'var(--danger)':'var(--muted)'}">${(cost||sale)?'$'+profit.toFixed(2):'—'}</td>
+          <td><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" onclick="openSaleModal('${it.id}')">Edit</button></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function openSaleModal(id) {
+  const item = inventory.find(i => i.id === id);
+  if (!item) return;
+  saleEditingId = id;
+  document.getElementById('sale-modal-item-name').textContent = item.name || 'Item';
+  document.getElementById('sale-cost').value  = item.cost || '';
+  document.getElementById('sale-price').value = item.salePrice || '';
+  document.getElementById('sale-date').value  = item.dateSold || '';
+  document.getElementById('sale-buyer').value = item.buyer || '';
+  document.getElementById('sale-modal').classList.add('open');
+}
+
+function closeSaleModal() {
+  document.getElementById('sale-modal').classList.remove('open');
+  saleEditingId = null;
+}
+
+function saveSale() {
+  const item = inventory.find(i => i.id === saleEditingId);
+  if (!item) return;
+  item.cost      = document.getElementById('sale-cost').value;
+  item.salePrice = document.getElementById('sale-price').value;
+  item.dateSold  = document.getElementById('sale-date').value;
+  item.buyer     = document.getElementById('sale-buyer').value;
+  item.status    = 'sold';
+  persistAndSync(); closeSaleModal(); renderFinance();
+  toast('Marked as sold ✓', 'success');
+}
+
+function markAvailable() {
+  const item = inventory.find(i => i.id === saleEditingId);
+  if (!item) return;
+  item.cost = document.getElementById('sale-cost').value;
+  item.status = 'available'; item.salePrice = ''; item.dateSold = ''; item.buyer = '';
+  persistAndSync(); closeSaleModal(); renderFinance();
+  toast('Marked as available', 'info');
+}
+
+function markReserved() {
+  const item = inventory.find(i => i.id === saleEditingId);
+  if (!item) return;
+  item.cost   = document.getElementById('sale-cost').value;
+  item.buyer  = document.getElementById('sale-buyer').value;
+  item.status = 'reserved';
+  persistAndSync(); closeSaleModal(); renderFinance();
+  toast('Marked as reserved', 'info');
+}
+
+function persistAndSync() {
+  localStorage.setItem('algae_inventory', JSON.stringify(inventory));
+  const url = getScriptUrl();
+  if (url) syncToSheets();
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Inline service worker for offline support
