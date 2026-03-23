@@ -1664,12 +1664,12 @@ function renderInventory() {
     const isSelected = selectedIds.has(item.id);
 
     return `
-    <div class="item-card ${isSelected ? 'selected' : ''}" data-id="${item.id}">
-      <div class="item-card-img" onclick="openEditModal('${item.id}')">
+    <div class="item-card ${isSelected ? 'selected' : ''}" data-id="${item.id}" data-action="edit">
+      <div class="item-card-img">
         ${photos[0] ? `<img src="${photos[0]}" loading="lazy">` : `<div class="no-img">🪸</div>`}
-        <div class="select-checkbox" id="chk-${item.id}" onclick="event.stopPropagation();toggleSelect('${item.id}')">${isSelected ? '✓' : ''}</div>
+        <div class="select-checkbox ${isSelected ? 'active' : ''}" id="chk-${item.id}" data-action="select" data-id="${item.id}">${isSelected ? '✓' : ''}</div>
       </div>
-      <div class="item-card-body" onclick="openEditModal('${item.id}')">
+      <div class="item-card-body" data-action="edit" data-id="${item.id}">
         <div class="listing-badge ${type}">${type === 'main' ? 'main · sb $6' : 'clearance · sb $2'}</div>
         <div class="name">${item.name || 'Untitled'}</div>
         <div class="measurements-mini">
@@ -1679,6 +1679,20 @@ function renderInventory() {
       </div>
     </div>`;
   }).join('');
+
+  // Event delegation — one listener handles all card interactions
+  grid.onclick = function(e) {
+    const selectEl = e.target.closest('[data-action="select"]');
+    if (selectEl) {
+      e.stopPropagation();
+      toggleSelect(selectEl.dataset.id);
+      return;
+    }
+    const editEl = e.target.closest('[data-action="edit"]');
+    if (editEl) {
+      openEditModal(editEl.dataset.id);
+    }
+  };
 
   updateBulkBar();
 }
@@ -2307,11 +2321,17 @@ function renderItemsTable(el) {
                 ${(cost||sale) ? `<span style="color:${profit>=0?'var(--success)':'var(--danger)'}">$${profit.toFixed(2)}</span>` : ''}
               </div>
             </div>
-            <button class="btn btn-secondary finance-edit-btn" style="padding:6px 12px;font-size:12px;flex-shrink:0" onclick="openSaleModal('${it.id}')">Edit</button>
+            <button class="btn btn-secondary finance-edit-btn" style="padding:6px 12px;font-size:12px;flex-shrink:0" data-action="sale" data-id="${it.id}">Edit</button>
           </div>`;
         }).join('')}
       </div>
     </div>`).join('');
+
+  // Event delegation for finance edit buttons and tap-to-edit
+  el.onclick = function(e) {
+    const saleBtn = e.target.closest('[data-action="sale"]');
+    if (saleBtn) { openSaleModal(saleBtn.dataset.id); return; }
+  };
 
   // Attach drag-and-drop
   setupFinanceDragDrop();
