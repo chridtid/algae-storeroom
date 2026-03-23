@@ -1394,6 +1394,9 @@ async function saveItem() {
   const name = document.getElementById('item-name').value.trim();
   if (!name) { toast('Add an item description', 'error'); return; }
 
+  // Capture photos and form data BEFORE clearing
+  const capturedPhotos = [...currentPhotos];
+
   const item = {
     id: Date.now().toString(),
     name,
@@ -1401,29 +1404,27 @@ async function saveItem() {
     gender: document.getElementById('item-gender').value,
     size: document.getElementById('item-size').value.trim(),
     listingType: document.getElementById('item-listing-type').value,
-    source: document.getElementById('item-source').value.trim(),
+    source: document.getElementById('item-source').value,
     persons: getSelectedPersons(),
     date: document.getElementById('item-date').value || '',
     measurements: getMeasurements(),
     notes: document.getElementById('item-notes').value.trim(),
-    photos: currentPhotos.map(p => p.dataUrl), // local preview while uploading
+    photos: capturedPhotos.map(p => p.dataUrl),
     addedAt: new Date().toISOString(),
   };
 
-  // Save locally first so it appears immediately
+  // Save locally and render
   inventory.unshift(item);
   localStorage.setItem('algae_inventory', JSON.stringify(inventory));
-  clearForm(); // clear straight away — don't wait for upload
   renderInventory();
 
   // Upload photos to Drive if script URL configured
   const url = getScriptUrl();
-  if (url && currentPhotos.length > 0) {
-    toast(`Saving & uploading ${currentPhotos.length} photo(s)…`, 'info');
+  if (url && capturedPhotos.length > 0) {
+    toast(`Saving & uploading ${capturedPhotos.length} photo(s)…`, 'info');
     try {
-      const driveUrls = await uploadPhotosToDrive(item, currentPhotos, url);      // Replace local dataUrls with Drive URLs
+      const driveUrls = await uploadPhotosToDrive(item, capturedPhotos, url);
       item.photos = driveUrls;
-      // Update in inventory array
       const idx = inventory.findIndex(i => i.id === item.id);
       if (idx !== -1) inventory[idx].photos = driveUrls;
       localStorage.setItem('algae_inventory', JSON.stringify(inventory));
@@ -1433,10 +1434,9 @@ async function saveItem() {
       toast('Item saved, but photo upload failed: ' + e.message, 'error');
     }
   } else {
-    toast(`Saved: ${name}`, 'success');
+    toast(`Saved ✓`, 'success');
   }
 
-  // Sync updated inventory to Sheet
   if (url) syncToSheets();
 }
 
@@ -1792,15 +1792,14 @@ async function syncToSheets() {
   if (!url) { toast('Add your Apps Script URL in Settings first', 'error'); return; }
   toast('Syncing…', 'info');
   try {
-    const payload = inventory.map(it => ({
-      ...it,
-      photos: [], // don't push photos to Sheets — too large
-    }));
+    const payload = inventory.map(it => ({ ...it, photos: it.photos ? it.photos.filter(p => p && !p.startsWith('data:')) : [] }));
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' }, // avoid CORS preflight
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'set', items: payload }),
+      redirect: 'follow',
     });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.ok) toast(`Synced ${inventory.length} items ✓`, 'success');
     else toast('Sync error: ' + (data.error || 'unknown'), 'error');
