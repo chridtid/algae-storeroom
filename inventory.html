@@ -354,7 +354,8 @@
     color: var(--accent);
     transition: all 0.15s;
   }
-  .item-card.selected .select-checkbox {
+  .item-card.selected .select-checkbox,
+  .select-checkbox.active {
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
@@ -1659,14 +1660,16 @@ function renderInventory() {
     ].filter(Boolean).join(' · ');
     const type = item.listingType || 'main';
     const persons = (item.persons||[]).join(', ');
+    const photos = item.photos || [];
+    const isSelected = selectedIds.has(item.id);
 
     return `
-    <div class="item-card ${selectedIds.has(item.id) ? 'selected' : ''}" onclick="openEditModal('${item.id}')">
-      <div class="item-card-img">
-        ${item.photos[0] ? `<img src="${item.photos[0]}" loading="lazy">` : `<div class="no-img">🪸</div>`}
-        <div class="select-checkbox" onclick="event.stopPropagation();toggleSelect('${item.id}')">${selectedIds.has(item.id) ? '✓' : ''}</div>
+    <div class="item-card ${isSelected ? 'selected' : ''}" data-id="${item.id}">
+      <div class="item-card-img" onclick="openEditModal('${item.id}')">
+        ${photos[0] ? `<img src="${photos[0]}" loading="lazy">` : `<div class="no-img">🪸</div>`}
+        <div class="select-checkbox" id="chk-${item.id}" onclick="event.stopPropagation();toggleSelect('${item.id}')">${isSelected ? '✓' : ''}</div>
       </div>
-      <div class="item-card-body">
+      <div class="item-card-body" onclick="openEditModal('${item.id}')">
         <div class="listing-badge ${type}">${type === 'main' ? 'main · sb $6' : 'clearance · sb $2'}</div>
         <div class="name">${item.name || 'Untitled'}</div>
         <div class="measurements-mini">
@@ -1683,7 +1686,13 @@ function renderInventory() {
 function toggleSelect(id) {
   if (selectedIds.has(id)) selectedIds.delete(id);
   else selectedIds.add(id);
-  renderInventory();
+  // Update just this card's visual state without re-rendering everything
+  const card = document.querySelector(`.item-card[data-id="${id}"]`);
+  const chk  = document.getElementById('chk-' + id);
+  if (card) card.classList.toggle('selected', selectedIds.has(id));
+  if (chk)  chk.textContent = selectedIds.has(id) ? '✓' : '';
+  if (card) card.querySelector('.select-checkbox')?.classList.toggle('active', selectedIds.has(id));
+  updateBulkBar();
 }
 
 function selectAll() {
@@ -2455,11 +2464,29 @@ function setupFinanceDragDrop() {
       }
     }, { passive: false });
 
-    // Mouse: normal drag from handle, row click does nothing
+    // Mouse: only start dragging after moving 5px, so Edit button clicks still fire
+    let mouseDownPos = null;
     row.addEventListener('mousedown', e => {
       if (e.button !== 0) return;
       if (e.target.closest('.finance-edit-btn')) return;
-      onDragStart(e, row);
+      mouseDownPos = { x: e.clientX, y: e.clientY };
+      const onMove = mv => {
+        if (!mouseDownPos) return;
+        const dx = mv.clientX - mouseDownPos.x;
+        const dy = mv.clientY - mouseDownPos.y;
+        if (Math.sqrt(dx*dx + dy*dy) > 5) {
+          mouseDownPos = null;
+          document.removeEventListener('mousemove', onMove);
+          onDragStart(e, row);
+        }
+      };
+      const onUp = () => {
+        mouseDownPos = null;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
     });
   });
 
