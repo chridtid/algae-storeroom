@@ -821,10 +821,10 @@
     <div class="logo"><span class="logo-icon">🪸</span><div class="logo-text"><span style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;color:var(--accent);">Algae <em>Storeroom</em></span><span class="sub">inventory manager</span></div></div>
   </div>
   <nav>
-    <button class="tab-btn active" onclick="switchTab('add')">+ Add Item</button>
-    <button class="tab-btn" onclick="switchTab('inventory')">Inventory</button>
-    <button class="tab-btn" onclick="switchTab('finance')">Finance</button>
-    <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+    <button class="tab-btn active" onclick="switchTab('add',this)">+ Add Item</button>
+    <button class="tab-btn" onclick="switchTab('inventory',this)">Inventory</button>
+    <button class="tab-btn" onclick="switchTab('finance',this)">Finance</button>
+    <button class="tab-btn" onclick="switchTab('settings',this)">Settings</button>
   </nav>
 </header>
 
@@ -1405,11 +1405,11 @@ function resetTemplate() {
 function initTemplateEditor() {
   document.getElementById('template-editor').value = getTemplates()['top'];
 }
-function switchTab(tab) {
+function switchTab(tab, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
   if (tab === 'inventory') renderInventory();
   if (tab === 'finance') renderFinance();
 }
