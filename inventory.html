@@ -344,15 +344,21 @@
   }
   .select-checkbox {
     position: absolute;
-    top: 8px; left: 8px;
-    width: 22px; height: 22px;
+    top: 6px; left: 6px;
+    width: 32px; height: 32px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.85);
-    border: 1.5px solid var(--border);
+    background: rgba(255,255,255,0.9);
+    border: 2px solid var(--border);
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px;
+    font-size: 14px;
     color: var(--accent);
     transition: all 0.15s;
+    cursor: pointer;
+    /* Larger invisible tap area */
+    padding: 8px;
+    margin: -8px;
+    box-sizing: content-box;
+    z-index: 10;
   }
   .item-card.selected .select-checkbox,
   .select-checkbox.active {
@@ -930,7 +936,8 @@
 <div id="page-inventory" class="page">
   <div class="inventory-toolbar">
     <input type="text" id="search-input" placeholder="Search description…" oninput="renderInventory()">
-    <button class="btn btn-secondary" onclick="syncToSheets()">↑ Sync</button>
+    <button class="btn btn-secondary" onclick="pullFromSheets()">↓ Pull</button>
+    <button class="btn btn-secondary" onclick="syncToSheets()">↑ Push</button>
     <button class="btn btn-secondary" onclick="selectAll()">Select All</button>
   </div>
 
@@ -1230,6 +1237,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
+window.onerror = function(msg, src, line, col, err) {
+  console.error('JS ERROR:', msg, 'line:', line, err);
+  document.getElementById('toast') && (document.getElementById('toast').textContent = 'JS Error: ' + msg + ' (line ' + line + ')', document.getElementById('toast').className = 'toast error show', setTimeout(() => document.getElementById('toast').classList.remove('show'), 6000));
+};
 // =================== STATE ===================
 let inventory = JSON.parse(localStorage.getItem('algae_inventory') || '[]');
 let currentPhotos = [];
@@ -1664,12 +1675,12 @@ function renderInventory() {
     const isSelected = selectedIds.has(item.id);
 
     return `
-    <div class="item-card ${isSelected ? 'selected' : ''}" data-id="${item.id}" data-action="edit">
+    <div class="item-card ${isSelected ? 'selected' : ''}" data-id="${item.id}">
       <div class="item-card-img">
-        ${photos[0] ? `<img src="${photos[0]}" loading="lazy">` : `<div class="no-img">🪸</div>`}
-        <div class="select-checkbox ${isSelected ? 'active' : ''}" id="chk-${item.id}" data-action="select" data-id="${item.id}">${isSelected ? '✓' : ''}</div>
+        ${photos[0] ? `<img src="${photos[0]}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="no-img" style="display:none">📷</div>` : `<div class="no-img">🪸</div>`}
+        <div class="select-checkbox ${isSelected ? 'active' : ''}" id="chk-${item.id}" data-id="${item.id}">${isSelected ? '✓' : ''}</div>
       </div>
-      <div class="item-card-body" data-action="edit" data-id="${item.id}">
+      <div class="item-card-body" data-id="${item.id}">
         <div class="listing-badge ${type}">${type === 'main' ? 'main · sb $6' : 'clearance · sb $2'}</div>
         <div class="name">${item.name || 'Untitled'}</div>
         <div class="measurements-mini">
@@ -1682,15 +1693,16 @@ function renderInventory() {
 
   // Event delegation — one listener handles all card interactions
   grid.onclick = function(e) {
-    const selectEl = e.target.closest('[data-action="select"]');
+    const selectEl = e.target.closest('.select-checkbox');
     if (selectEl) {
-      e.stopPropagation();
-      toggleSelect(selectEl.dataset.id);
+      // Checkbox tap — stop here, don't open edit
+      const id = selectEl.dataset.id;
+      if (id) toggleSelect(id);
       return;
     }
-    const editEl = e.target.closest('[data-action="edit"]');
-    if (editEl) {
-      openEditModal(editEl.dataset.id);
+    const card = e.target.closest('.item-card');
+    if (card && card.dataset.id) {
+      openEditModal(card.dataset.id);
     }
   };
 
@@ -1698,14 +1710,13 @@ function renderInventory() {
 }
 
 function toggleSelect(id) {
-  if (selectedIds.has(id)) selectedIds.delete(id);
-  else selectedIds.add(id);
-  // Update just this card's visual state without re-rendering everything
-  const card = document.querySelector(`.item-card[data-id="${id}"]`);
-  const chk  = document.getElementById('chk-' + id);
-  if (card) card.classList.toggle('selected', selectedIds.has(id));
-  if (chk)  chk.textContent = selectedIds.has(id) ? '✓' : '';
-  if (card) card.querySelector('.select-checkbox')?.classList.toggle('active', selectedIds.has(id));
+  const sid = String(id);
+  if (selectedIds.has(sid)) selectedIds.delete(sid);
+  else selectedIds.add(sid);
+  const card = document.querySelector(`.item-card[data-id="${sid}"]`);
+  const chk  = document.getElementById('chk-' + sid);
+  if (card) card.classList.toggle('selected', selectedIds.has(sid));
+  if (chk)  { chk.textContent = selectedIds.has(sid) ? '✓' : ''; chk.classList.toggle('active', selectedIds.has(sid)); }
   updateBulkBar();
 }
 
@@ -1737,11 +1748,12 @@ function updateBulkBar() {
 
 function deleteSelected() {
   if (!confirm(`Delete ${selectedIds.size} item(s)?`)) return;
-  inventory = inventory.filter(it => !selectedIds.has(it.id));
+  const toDelete = new Set([...selectedIds].map(String));
+  inventory = inventory.filter(it => !toDelete.has(String(it.id)));
   localStorage.setItem('algae_inventory', JSON.stringify(inventory));
   selectedIds.clear();
   renderInventory();
-  toast('Deleted', 'info');
+  toast('Deleted. Press ↑ Push to sync to Sheet.', 'info');
 }
 
 // =================== BUILD CAPTION ===================
@@ -1939,23 +1951,31 @@ function getScriptUrl() {
 
 async function pullFromSheets() {
   const url = getScriptUrl();
-  if (!url) return; // no url configured yet, skip silently
+  if (!url) { toast('Add your Apps Script URL in Settings first', 'error'); return; }
+  toast('Pulling from Sheet…', 'info');
   try {
     const res = await fetch(url + '?action=get');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.items && Array.isArray(data.items)) {
-      // Merge: remote is source of truth, but keep photos from local (they're too big for Sheets)
+      // Keep local base64 photos for items not yet uploaded,
+      // but prefer Drive URLs (non-base64) from the sheet
       const localMap = {};
       inventory.forEach(it => { localMap[it.id] = it; });
-      inventory = data.items.map(remote => ({
-        ...remote,
-        photos: localMap[remote.id]?.photos || [],
-      }));
+      inventory = data.items.map(remote => {
+        const local = localMap[String(remote.id)];
+        const remotePhotos = (remote.photos || []).filter(p => p && !p.startsWith('data:'));
+        const localPhotos  = (local?.photos || []).filter(p => p && !p.startsWith('data:'));
+        return { ...remote, id: String(remote.id), photos: remotePhotos.length ? remotePhotos : localPhotos };
+      });
       localStorage.setItem('algae_inventory', JSON.stringify(inventory));
       renderInventory();
+      toast(`Pulled ${inventory.length} items ✓`, 'success');
+    } else {
+      toast('Pull error: ' + (data.error || 'no items returned'), 'error');
     }
   } catch(e) {
-    console.warn('Could not pull from Sheets:', e.message);
+    toast('Pull failed: ' + e.message, 'error');
   }
 }
 
