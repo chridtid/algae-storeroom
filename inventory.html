@@ -1028,22 +1028,41 @@
     <!-- Google Sheets via Apps Script -->
     <div class="settings-card">
       <h3>Google Sheets</h3>
-      <p>Paste your Apps Script Web App URL below. See the Setup Guide for how to create it — takes about 5 minutes.</p>
+      <p>Paste your Apps Script Web App URL below. Handles all item data.</p>
       <div class="field-group">
         <label>Apps Script URL</label>
         <input type="text" id="sheets-url" placeholder="https://script.google.com/macros/s/…/exec">
       </div>
       <div style="display:flex; gap:8px; align-items:center; margin-top:4px;">
-        <button class="btn btn-secondary" onclick="testSheets()">Test Connection</button>
+        <button class="btn btn-secondary" onclick="testSheets()">Test</button>
         <button class="btn btn-primary" onclick="saveSettings()">Save</button>
         <span id="sheets-status"><span class="status-dot"></span>Not connected</span>
+      </div>
+    </div>
+
+    <!-- Cloudinary -->
+    <div class="settings-card">
+      <h3>Cloudinary (Photos)</h3>
+      <p>Free photo hosting. Create an account at cloudinary.com, then paste your details below.</p>
+      <div class="field-group">
+        <label>Cloud Name</label>
+        <input type="text" id="cloudinary-cloud" placeholder="e.g. myshopname">
+      </div>
+      <div class="field-group">
+        <label>Upload Preset</label>
+        <input type="text" id="cloudinary-preset" placeholder="e.g. algae_unsigned">
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:4px;">
+        <button class="btn btn-secondary" onclick="testCloudinary()">Test</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+        <span id="cloudinary-status"><span class="status-dot"></span>Not connected</span>
       </div>
     </div>
 
     <!-- Telegram -->
     <div class="settings-card">
       <h3>Telegram Bot</h3>
-      <p>Sends grouped photos + caption to your channel or group.<br>Create a bot with @BotFather to get a token.</p>
+      <p>Sends grouped photos + caption to your channel or group.</p>
       <div class="field-group">
         <label>Bot Token</label>
         <input type="text" id="tg-token" placeholder="123456:ABCDefgh…">
@@ -1063,14 +1082,16 @@
     <div class="settings-card" style="grid-column: 1 / -1; background: #eef3ec; border-color: #c0d4ba;">
       <h3 style="color: var(--accent);">Setup Guide</h3>
       <p style="color: var(--muted); max-width:700px; line-height:1.9; font-family:'DM Mono',monospace; font-size:12px;">
-        <strong style="color:var(--accent)">Google Sheets (5 mins):</strong><br>
-        1. Create a new Google Sheet and share it (Editor access) with everyone who needs it.<br>
-        2. In the Sheet, go to <strong>Extensions → Apps Script</strong>.<br>
-        3. Delete any existing code and paste in the Apps Script from the separate file provided.<br>
-        4. Click <strong>Deploy → New deployment → Web app</strong>. Set "Who has access" to <strong>Anyone</strong>. Click Deploy.<br>
-        5. Copy the Web App URL and paste it into the Apps Script URL field above.<br><br>
+        <strong style="color:var(--accent)">Google Sheets:</strong><br>
+        1. Create a Google Sheet, share with friends (Editor access).<br>
+        2. Extensions → Apps Script → paste the .gs file → Deploy → New deployment → Web app → Anyone → Deploy → copy URL.<br><br>
+        <strong style="color:var(--accent)">Cloudinary (Photos):</strong><br>
+        1. Go to cloudinary.com → sign up free.<br>
+        2. Dashboard → copy your <strong>Cloud Name</strong>.<br>
+        3. Settings → Upload → scroll to "Upload presets" → Add preset → set Signing mode to <strong>Unsigned</strong> → save → copy the preset name.<br>
+        4. Paste both into the Cloudinary fields above.<br><br>
         <strong style="color:var(--accent)">Telegram:</strong><br>
-        Message @BotFather → /newbot → get your token. Add the bot to your channel as admin. Get Chat ID from the getUpdates URL.
+        Message @BotFather → /newbot → get token. Add bot to channel as admin. Get Chat ID from getUpdates URL.
       </p>
     </div>
   </div>
@@ -1247,6 +1268,21 @@ let currentPhotos = [];
 let selectedIds = new Set();
 let currentSubTab = 'main';
 
+// Clean any legacy timestamps on load
+inventory = inventory.map(it => ({
+  ...it,
+  id: String(it.id || Date.now()),
+  date: cleanDate(it.date),
+  dateSold: cleanDate(it.dateSold),
+}));
+
+function cleanDate(d) {
+  if (!d) return '';
+  // Strip anything after the date part e.g. "2026-03-24T16:00:00.000Z" → "2026-03-24"
+  const match = String(d).match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : '';
+}
+
 // =================== HARDCODED SETTINGS ===================
 // Fill these in once — everyone who opens the app will be connected automatically
 const HARDCODED = {
@@ -1277,24 +1313,34 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function loadSettings() {
   const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
-  const sheetsUrl = s.sheetsUrl || HARDCODED.sheetsUrl;
-  const tgToken   = s.tgToken   || HARDCODED.tgToken;
-  const tgChat    = s.tgChat    || HARDCODED.tgChat;
-  document.getElementById('sheets-url').value = sheetsUrl;
-  document.getElementById('tg-token').value   = tgToken;
-  document.getElementById('tg-chat').value    = tgChat;
-  // Persist so other functions can read from localStorage
-  localStorage.setItem('algae_settings', JSON.stringify({ sheetsUrl, tgToken, tgChat }));
+  const sheetsUrl        = s.sheetsUrl        || HARDCODED.sheetsUrl;
+  const tgToken          = s.tgToken          || HARDCODED.tgToken;
+  const tgChat           = s.tgChat           || HARDCODED.tgChat;
+  const cloudinaryCloud  = s.cloudinaryCloud  || '';
+  const cloudinaryPreset = s.cloudinaryPreset || '';
+  document.getElementById('sheets-url').value        = sheetsUrl;
+  document.getElementById('tg-token').value          = tgToken;
+  document.getElementById('tg-chat').value           = tgChat;
+  document.getElementById('cloudinary-cloud').value  = cloudinaryCloud;
+  document.getElementById('cloudinary-preset').value = cloudinaryPreset;
+  localStorage.setItem('algae_settings', JSON.stringify({ sheetsUrl, tgToken, tgChat, cloudinaryCloud, cloudinaryPreset }));
 }
 
 function saveSettings() {
   const s = {
-    sheetsUrl: document.getElementById('sheets-url').value.trim(),
-    tgToken: document.getElementById('tg-token').value.trim(),
-    tgChat: document.getElementById('tg-chat').value.trim(),
+    sheetsUrl:        document.getElementById('sheets-url').value.trim(),
+    tgToken:          document.getElementById('tg-token').value.trim(),
+    tgChat:           document.getElementById('tg-chat').value.trim(),
+    cloudinaryCloud:  document.getElementById('cloudinary-cloud').value.trim(),
+    cloudinaryPreset: document.getElementById('cloudinary-preset').value.trim(),
   };
   localStorage.setItem('algae_settings', JSON.stringify(s));
   toast('Settings saved', 'success');
+}
+
+function getCloudinaryConfig() {
+  const s = JSON.parse(localStorage.getItem('algae_settings') || '{}');
+  return { cloud: s.cloudinaryCloud || '', preset: s.cloudinaryPreset || '' };
 }
 
 // =================== TEMPLATES ===================
@@ -1555,59 +1601,76 @@ async function saveItem() {
   localStorage.setItem('algae_inventory', JSON.stringify(inventory));
   renderInventory();
 
-  // Upload photos to Drive if script URL configured
-  const url = getScriptUrl();
-  if (url && capturedPhotos.length > 0) {
-    toast(`Saving & uploading ${capturedPhotos.length} photo(s)…`, 'info');
+  // Upload photos to Cloudinary if configured
+  const { cloud, preset } = getCloudinaryConfig();
+  if (cloud && preset && capturedPhotos.length > 0) {
+    toast(`Uploading ${capturedPhotos.length} photo(s)…`, 'info');
     try {
-      const driveUrls = await uploadPhotosToDrive(item, capturedPhotos, url);
-      item.photos = driveUrls;
+      const cloudUrls = await uploadPhotosToCloudinary(capturedPhotos);
+      item.photos = cloudUrls;
       const idx = inventory.findIndex(i => i.id === item.id);
-      if (idx !== -1) inventory[idx].photos = driveUrls;
+      if (idx !== -1) inventory[idx].photos = cloudUrls;
       localStorage.setItem('algae_inventory', JSON.stringify(inventory));
       renderInventory();
-      toast(`Saved + ${driveUrls.length} photo(s) uploaded ✓`, 'success');
+      toast(`Saved + ${cloudUrls.length} photo(s) uploaded ✓`, 'success');
     } catch(e) {
-      toast('Item saved, but photo upload failed: ' + e.message, 'error');
+      toast('Item saved, photo upload failed: ' + e.message, 'error');
     }
   } else {
-    toast(`Saved ✓`, 'success');
+    toast('Saved ✓', 'success');
   }
 
+  const url = getScriptUrl();
   if (url) syncToSheets();
 }
 
 async function uploadPhotosToDrive(item, photos, scriptUrl) {
-  const folderName = item.date || 'Undated';
-  const itemName = item.name || item.id;
+  // Now uses Cloudinary instead of Drive
+  return uploadPhotosToCloudinary(photos);
+}
+
+async function uploadPhotosToCloudinary(photos) {
+  const { cloud, preset } = getCloudinaryConfig();
+  if (!cloud || !preset) throw new Error('Cloudinary not configured in Settings');
   const urls = [];
-
-  for (let i = 0; i < photos.length; i++) {
-    const { dataUrl } = photos[i];
-    const base64 = dataUrl.split(',')[1];
-    const mimeType = dataUrl.match(/data:(.*?);/)[1];
-    const filename = `${itemName}_${i + 1}.jpg`;
-
-    const res = await fetch(scriptUrl, {
+  for (const p of photos) {
+    const fd = new FormData();
+    fd.append('file', p.dataUrl);
+    fd.append('upload_preset', preset);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'uploadPhoto',
-        folder: folderName,
-        itemName,
-        filename,
-        base64,
-        mimeType,
-      }),
+      body: fd,
     });
+    if (!res.ok) throw new Error('Cloudinary upload failed: ' + res.status);
     const data = await res.json();
-    if (data.ok && data.url) {
-      urls.push(data.url);
-    } else {
-      throw new Error(data.error || 'Upload failed');
-    }
+    if (data.secure_url) urls.push(data.secure_url);
+    else throw new Error(data.error?.message || 'No URL returned');
   }
   return urls;
+}
+
+async function testCloudinary() {
+  const { cloud, preset } = getCloudinaryConfig();
+  if (!cloud || !preset) { toast('Fill in Cloud Name and Upload Preset first', 'error'); return; }
+  toast('Testing Cloudinary…', 'info');
+  // Upload a tiny 1x1 pixel test image
+  const testDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  try {
+    const fd = new FormData();
+    fd.append('file', testDataUrl);
+    fd.append('upload_preset', preset);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.secure_url) {
+      document.getElementById('cloudinary-status').innerHTML = '<span class="status-dot connected"></span>Connected';
+      toast('Cloudinary connected ✓', 'success');
+      saveSettings();
+    } else {
+      toast('Error: ' + (data.error?.message || 'unknown'), 'error');
+    }
+  } catch(e) {
+    toast('Failed: ' + e.message, 'error');
+  }
 }
 
 function clearForm() {
@@ -1965,8 +2028,10 @@ async function pullFromSheets() {
       inventory = data.items.map(remote => {
         const local = localMap[String(remote.id)];
         const remotePhotos = (remote.photos || []).filter(p => p && !p.startsWith('data:'));
-        const localPhotos  = (local?.photos || []).filter(p => p && !p.startsWith('data:'));
-        return { ...remote, id: String(remote.id), photos: remotePhotos.length ? remotePhotos : localPhotos };
+        const localPhotos  = (local?.photos  || []);
+        // Prefer Drive URLs from remote; fall back to whatever is local
+        const photos = remotePhotos.length ? remotePhotos : localPhotos;
+        return { ...remote, id: String(remote.id), date: cleanDate(remote.date), dateSold: cleanDate(remote.dateSold), photos };
       });
       localStorage.setItem('algae_inventory', JSON.stringify(inventory));
       renderInventory();
@@ -1982,9 +2047,13 @@ async function pullFromSheets() {
 async function syncToSheets() {
   const url = getScriptUrl();
   if (!url) { toast('Add your Apps Script URL in Settings first', 'error'); return; }
-  toast('Syncing…', 'info');
+  toast('Pushing to Sheet…', 'info');
   try {
-    const payload = inventory.map(it => ({ ...it, photos: it.photos ? it.photos.filter(p => p && !p.startsWith('data:')) : [] }));
+    // Send Drive URLs only (not base64) to keep payload small
+    const payload = inventory.map(it => ({
+      ...it,
+      photos: (it.photos || []).filter(p => p && !p.startsWith('data:')),
+    }));
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
@@ -1993,10 +2062,10 @@ async function syncToSheets() {
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
-    if (data.ok) toast(`Synced ${inventory.length} items ✓`, 'success');
-    else toast('Sync error: ' + (data.error || 'unknown'), 'error');
+    if (data.ok) toast(`Pushed ${inventory.length} items ✓`, 'success');
+    else toast('Push error: ' + (data.error || 'unknown'), 'error');
   } catch(e) {
-    toast('Sync failed: ' + e.message, 'error');
+    toast('Push failed: ' + e.message, 'error');
   }
 }
 
@@ -2143,27 +2212,27 @@ async function saveEdit() {
   item.measurements = measurements;
   item.persons     = persons;
 
-  // Handle photos — upload new ones, keep existing URLs
-  const url = getScriptUrl();
-  const newPhotos = editPhotos.filter(p => p.isNew);
+  // Handle photos — upload new ones to Cloudinary, keep existing URLs
+  const { cloud, preset } = getCloudinaryConfig();
+  const newPhotos    = editPhotos.filter(p => p.isNew);
   const existingUrls = editPhotos.filter(p => !p.isNew).map(p => p.dataUrl);
 
-  if (url && newPhotos.length > 0) {
+  if (cloud && preset && newPhotos.length > 0) {
     toast(`Uploading ${newPhotos.length} new photo(s)…`, 'info');
     try {
-      const itemName = item.name || item.id;
-      const newUrls = await uploadPhotosToDrive(item, newPhotos, url);
+      const newUrls = await uploadPhotosToCloudinary(newPhotos);
       item.photos = [...existingUrls, ...newUrls];
     } catch(e) {
       toast('Photo upload failed: ' + e.message, 'error');
       item.photos = [...existingUrls, ...newPhotos.map(p => p.dataUrl)];
     }
   } else {
-    item.photos = existingUrls;
+    item.photos = [...existingUrls, ...newPhotos.map(p => p.dataUrl)];
   }
 
   localStorage.setItem('algae_inventory', JSON.stringify(inventory));
   renderInventory();
+  const url = getScriptUrl();
   if (url) syncToSheets();
   toast('Changes saved ✓', 'success');
   closeEditModal();
